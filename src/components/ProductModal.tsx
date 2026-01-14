@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Product } from "@/types/product";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, ShoppingCart } from "lucide-react";
+import { Minus, Plus, ShoppingCart, ChevronDown, ChevronUp } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,9 @@ interface ProductModalProps {
 const ProductModal: React.FC<ProductModalProps> = ({ product, open, onClose }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [selectedWeight, setSelectedWeight] = useState<string | null>(null);
+  const [showAllIngredients, setShowAllIngredients] = useState(false);
+  const [showAllBenefits, setShowAllBenefits] = useState(false);
   const { addToCart } = useCart();
 
   // Auto-slide carousel
@@ -30,14 +33,33 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, open, onClose }) =
   useEffect(() => {
     setCurrentImageIndex(0);
     setQuantity(1);
+    setSelectedWeight(null);
+    setShowAllIngredients(false);
+    setShowAllBenefits(false);
   }, [product]);
 
   if (!product) return null;
 
+  // Get weight options or default to single price
+  const weightOptions = product.weightOptions || [
+    { weight: "250", price: product.price, unit: "g" }
+  ];
+
+  const currentPrice = selectedWeight
+    ? weightOptions.find(w => `${w.weight}${w.unit}` === selectedWeight)?.price || product.price
+    : product.price;
+
   const handleAddToCart = () => {
-    addToCart(product, quantity);
+    if (!selectedWeight) return;
+    addToCart(product, quantity, selectedWeight, currentPrice);
     onClose();
   };
+
+  // Limit items to show initially
+  const ingredientsEnToShow = showAllIngredients ? product.ingredientsEn : product.ingredientsEn.slice(0, 3);
+  const ingredientsTaToShow = showAllIngredients ? product.ingredientsTa : product.ingredientsTa.slice(0, 3);
+  const benefitsEnToShow = showAllBenefits ? product.benefitsEn : product.benefitsEn.slice(0, 3);
+  const benefitsTaToShow = showAllBenefits ? product.benefitsTa : product.benefitsTa.slice(0, 3);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -90,7 +112,31 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, open, onClose }) =
               </p>
             </div>
 
-            <p className="mt-4 text-3xl font-bold text-primary">₹{product.price}</p>
+            {/* Weight Selection */}
+            <div className="mt-4">
+              <p className="font-medium mb-2">Select Weight / எடையை தேர்ந்தெடு:</p>
+              <div className="flex flex-wrap gap-2">
+                {weightOptions.map((option) => {
+                  const weightKey = `${option.weight}${option.unit}`;
+                  return (
+                    <Button
+                      key={weightKey}
+                      variant={selectedWeight === weightKey ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedWeight(weightKey)}
+                      className="min-w-[80px]"
+                    >
+                      {option.weight}{option.unit} - ₹{option.price}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <p className="mt-4 text-3xl font-bold text-primary">
+              ₹{selectedWeight ? currentPrice : product.price}
+              {!selectedWeight && <span className="text-sm font-normal text-muted-foreground ml-2">(select weight)</span>}
+            </p>
 
             <div className="mt-4 space-y-2">
               <p className="text-foreground">{product.descriptionEn}</p>
@@ -124,11 +170,15 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, open, onClose }) =
               size="lg"
               className="mt-6 gap-2"
               onClick={handleAddToCart}
+              disabled={!selectedWeight}
             >
               <ShoppingCart className="h-5 w-5" />
               <span>Add to Cart</span>
               <span className="tamil-text text-sm">கார்ட்டில் சேர்</span>
             </Button>
+            {!selectedWeight && (
+              <p className="text-sm text-destructive mt-2">Please select a weight option / எடை விருப்பத்தை தேர்ந்தெடுக்கவும்</p>
+            )}
           </div>
         </div>
 
@@ -144,18 +194,46 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, open, onClose }) =
               <div className="rounded-lg bg-secondary/50 p-4">
                 <h4 className="font-semibold text-foreground">Ingredients</h4>
                 <ul className="mt-2 list-disc list-inside text-muted-foreground">
-                  {product.ingredientsEn.map((ing, i) => (
+                  {ingredientsEnToShow.map((ing, i) => (
                     <li key={i}>{ing}</li>
                   ))}
                 </ul>
+                {product.ingredientsEn.length > 3 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 p-0 h-auto"
+                    onClick={() => setShowAllIngredients(!showAllIngredients)}
+                  >
+                    {showAllIngredients ? (
+                      <>Show Less <ChevronUp className="h-4 w-4 ml-1" /></>
+                    ) : (
+                      <>View More ({product.ingredientsEn.length - 3} more) <ChevronDown className="h-4 w-4 ml-1" /></>
+                    )}
+                  </Button>
+                )}
               </div>
               <div className="rounded-lg bg-success/10 p-4">
                 <h4 className="font-semibold text-success">Health Benefits</h4>
                 <ul className="mt-2 list-disc list-inside text-muted-foreground">
-                  {product.benefitsEn.map((ben, i) => (
+                  {benefitsEnToShow.map((ben, i) => (
                     <li key={i}>{ben}</li>
                   ))}
                 </ul>
+                {product.benefitsEn.length > 3 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 p-0 h-auto"
+                    onClick={() => setShowAllBenefits(!showAllBenefits)}
+                  >
+                    {showAllBenefits ? (
+                      <>Show Less <ChevronUp className="h-4 w-4 ml-1" /></>
+                    ) : (
+                      <>View More ({product.benefitsEn.length - 3} more) <ChevronDown className="h-4 w-4 ml-1" /></>
+                    )}
+                  </Button>
+                )}
               </div>
               <div className="rounded-lg bg-gold/10 p-4">
                 <h4 className="font-semibold text-gold-foreground">Storage & Shelf Life</h4>
@@ -171,18 +249,38 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, open, onClose }) =
               <div className="rounded-lg bg-secondary/50 p-4">
                 <h4 className="font-semibold text-foreground">பொருட்கள்</h4>
                 <ul className="mt-2 list-disc list-inside text-muted-foreground">
-                  {product.ingredientsTa.map((ing, i) => (
+                  {ingredientsTaToShow.map((ing, i) => (
                     <li key={i}>{ing}</li>
                   ))}
                 </ul>
+                {product.ingredientsTa.length > 3 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 p-0 h-auto"
+                    onClick={() => setShowAllIngredients(!showAllIngredients)}
+                  >
+                    {showAllIngredients ? "குறைவாக காட்டு" : `மேலும் (${product.ingredientsTa.length - 3})`}
+                  </Button>
+                )}
               </div>
               <div className="rounded-lg bg-success/10 p-4">
                 <h4 className="font-semibold text-success">ஆரோக்கிய நன்மைகள்</h4>
                 <ul className="mt-2 list-disc list-inside text-muted-foreground">
-                  {product.benefitsTa.map((ben, i) => (
+                  {benefitsTaToShow.map((ben, i) => (
                     <li key={i}>{ben}</li>
                   ))}
                 </ul>
+                {product.benefitsTa.length > 3 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 p-0 h-auto"
+                    onClick={() => setShowAllBenefits(!showAllBenefits)}
+                  >
+                    {showAllBenefits ? "குறைவாக காட்டு" : `மேலும் (${product.benefitsTa.length - 3})`}
+                  </Button>
+                )}
               </div>
               <div className="rounded-lg bg-gold/10 p-4">
                 <h4 className="font-semibold text-gold-foreground">சேமிப்பு & ஆயுள்</h4>

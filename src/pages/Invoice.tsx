@@ -38,7 +38,9 @@ const Invoice: React.FC = () => {
     );
   }
 
-  const formattedDate = order.createdAt.toLocaleDateString("en-IN", {
+  // Safely format date - handle both Date and string
+  const orderDate = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
+  const formattedDate = orderDate.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -115,11 +117,14 @@ const Invoice: React.FC = () => {
                         <p className="text-sm text-muted-foreground tamil-text">
                           {item.product.nameTa}
                         </p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.selectedWeight}
+                        </p>
                       </td>
                       <td className="p-3 text-center">{item.quantity}</td>
-                      <td className="p-3 text-right">₹{item.product.price}</td>
+                      <td className="p-3 text-right">₹{item.unitPrice}</td>
                       <td className="p-3 text-right font-semibold">
-                        ₹{item.product.price * item.quantity}
+                        ₹{item.unitPrice * item.quantity}
                       </td>
                     </tr>
                   ))}
@@ -127,9 +132,19 @@ const Invoice: React.FC = () => {
               </table>
             </div>
 
-            {/* Total */}
+            {/* Totals */}
             <div className="flex justify-end">
-              <div className="w-48">
+              <div className="w-48 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal:</span>
+                  <span>₹{order.subtotal}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Delivery:</span>
+                  <span className={order.deliveryCharge === 0 ? "text-success" : ""}>
+                    {order.deliveryCharge === 0 ? "FREE" : `₹${order.deliveryCharge}`}
+                  </span>
+                </div>
                 <div className="flex justify-between py-2 border-t-2 border-primary">
                   <span className="font-bold text-lg">Grand Total:</span>
                   <span className="font-bold text-lg text-primary">₹{order.total}</span>

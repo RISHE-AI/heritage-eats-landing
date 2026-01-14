@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const { items, updateQuantity, removeFromCart, totalPrice, clearCart } = useCart();
+  const { items, updateQuantity, removeFromCart, totalPrice, clearCart, deliveryCharge, grandTotal } = useCart();
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [orderId, setOrderId] = useState("");
 
@@ -26,7 +26,9 @@ const Checkout: React.FC = () => {
     localStorage.setItem("currentOrder", JSON.stringify({
       id: orderId,
       items,
-      total: totalPrice,
+      subtotal: totalPrice,
+      deliveryCharge,
+      total: grandTotal,
       createdAt: new Date().toISOString(),
     }));
     clearCart();
@@ -102,7 +104,7 @@ const Checkout: React.FC = () => {
               <CardContent className="space-y-4">
                 {items.map(item => (
                   <div
-                    key={item.product.id}
+                    key={`${item.product.id}-${item.selectedWeight}`}
                     className="flex items-center gap-4 p-3 rounded-lg bg-secondary/30"
                   >
                     <img
@@ -115,14 +117,17 @@ const Checkout: React.FC = () => {
                       <p className="text-sm text-muted-foreground tamil-text truncate">
                         {item.product.nameTa}
                       </p>
-                      <p className="text-primary font-semibold">₹{item.product.price}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Weight: {item.selectedWeight}
+                      </p>
+                      <p className="text-primary font-semibold">₹{item.unitPrice}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.product.id, item.selectedWeight, item.quantity - 1)}
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
@@ -131,7 +136,7 @@ const Checkout: React.FC = () => {
                         variant="outline"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.product.id, item.selectedWeight, item.quantity + 1)}
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
@@ -139,7 +144,7 @@ const Checkout: React.FC = () => {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive"
-                        onClick={() => removeFromCart(item.product.id)}
+                        onClick={() => removeFromCart(item.product.id, item.selectedWeight)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -147,10 +152,25 @@ const Checkout: React.FC = () => {
                   </div>
                 ))}
 
-                <div className="border-t pt-4 mt-4">
-                  <div className="flex justify-between text-lg font-semibold">
+                <div className="border-t pt-4 mt-4 space-y-2">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Subtotal / துணை மொத்தம்:</span>
+                    <span>₹{totalPrice}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Delivery / டெலிவரி:</span>
+                    <span className={deliveryCharge === 0 ? "text-success" : ""}>
+                      {deliveryCharge === 0 ? "FREE" : `₹${deliveryCharge}`}
+                    </span>
+                  </div>
+                  {deliveryCharge > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      ₹60/kg delivery charge. Free for orders above ₹1000!
+                    </p>
+                  )}
+                  <div className="flex justify-between text-lg font-semibold border-t pt-2">
                     <span>Total / மொத்தம்:</span>
-                    <span className="text-primary">₹{totalPrice}</span>
+                    <span className="text-primary">₹{grandTotal}</span>
                   </div>
                 </div>
               </CardContent>
@@ -196,7 +216,7 @@ const Checkout: React.FC = () => {
                   {/* Amount */}
                   <div className="mt-4 p-4 bg-primary/10 rounded-lg">
                     <p className="text-sm text-muted-foreground">Amount to Pay:</p>
-                    <p className="text-3xl font-bold text-primary">₹{totalPrice}</p>
+                    <p className="text-3xl font-bold text-primary">₹{grandTotal}</p>
                   </div>
                 </div>
 

@@ -7,7 +7,7 @@ import ProductSection from "@/components/ProductSection";
 import ProductModal from "@/components/ProductModal";
 import FeedbackSection from "@/components/FeedbackSection";
 import Footer from "@/components/Footer";
-import WhatsAppButton from "@/components/WhatsAppButton";
+import Chatbot from "@/components/Chatbot";
 
 const Index: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -16,6 +16,8 @@ const Index: React.FC = () => {
   const sweets = getProductsByCategory("sweets");
   const snacks = getProductsByCategory("snacks");
   const pickles = getProductsByCategory("pickles");
+  const malts = getProductsByCategory("malts");
+  const podi = getProductsByCategory("podi");
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
@@ -61,11 +63,39 @@ const Index: React.FC = () => {
           onProductClick={handleProductClick}
         />
 
+        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+
+        {malts.length > 0 && (
+          <>
+            <ProductSection
+              id="malts"
+              titleEn="Health Malts"
+              titleTa="ஆரோக்கிய மால்ட்"
+              products={malts}
+              onProductClick={handleProductClick}
+            />
+            <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+          </>
+        )}
+
+        {podi.length > 0 && (
+          <>
+            <ProductSection
+              id="podi"
+              titleEn="Traditional Podi"
+              titleTa="பாரம்பரிய பொடி"
+              products={podi}
+              onProductClick={handleProductClick}
+            />
+            <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+          </>
+        )}
+
         <FeedbackSection />
       </main>
 
       <Footer />
-      <WhatsAppButton />
+      <Chatbot />
 
       <ProductModal
         product={selectedProduct}

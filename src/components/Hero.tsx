@@ -1,11 +1,14 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Phone } from "lucide-react";
 
 const Hero: React.FC = () => {
   const scrollToProducts = () => {
     document.querySelector("#sweets")?.scrollIntoView({ behavior: "smooth" });
   };
+
+  const whatsappNumber = "919876543210";
+  const whatsappMessage = encodeURIComponent("Hi! I'm interested in your homemade products.");
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-secondary/50 to-background py-16 md:py-24">
@@ -45,11 +48,27 @@ const Hero: React.FC = () => {
             <Button
               size="lg"
               onClick={scrollToProducts}
-              className="gap-2 text-lg shadow-lg hover:shadow-xl transition-all"
+              className="gap-2 text-lg shadow-lg hover:shadow-xl transition-all hover:scale-105"
             >
               <span>Explore Products</span>
               <span className="tamil-text text-sm">தயாரிப்புகளை காண்க</span>
             </Button>
+            
+            <a
+              href={`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button
+                size="lg"
+                variant="outline"
+                className="gap-2 text-lg border-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white transition-all hover:scale-105"
+              >
+                <Phone className="h-5 w-5" />
+                <span>WhatsApp Us</span>
+                <span className="tamil-text text-sm">வாட்ஸ்அப்</span>
+              </Button>
+            </a>
           </div>
 
           {/* Scroll indicator */}

@@ -11,31 +11,48 @@ serve(async (req) => {
   }
 
   try {
-    const { order, type } = await req.json();
+    const body = await req.json();
+    
+    // Support both formats: { order: {...} } or direct { orderId, customer, items, ... }
+    const orderId = body.orderId || body.order?.id;
+    const customer = body.customer || body.order?.customer;
+    const items = body.items || body.order?.items || [];
+    const grandTotal = body.grandTotal || body.order?.total || body.order?.grandTotal;
+    const subtotal = body.subtotal || body.order?.subtotal || 0;
+    const deliveryCharge = body.deliveryCharge || body.order?.deliveryCharge || 0;
+    
+    if (!customer || !items.length) {
+      return new Response(JSON.stringify({ 
+        error: 'Missing required fields: customer and items' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
     // Format order message for WhatsApp
-    const itemsList = order.items.map((item: any) => 
-      `• ${item.product.nameEn} (${item.weight}) x${item.quantity} - ₹${item.price}`
+    const itemsList = items.map((item: any) => 
+      `• ${item.name || item.productName || item.product?.nameEn} (${item.weight}) x${item.quantity} - ₹${item.price || item.totalPrice || item.unitPrice}`
     ).join('\n');
     
     const message = `
 🛒 *New Order Received!*
 
-*Order ID:* ${order.id}
+*Order ID:* ${orderId}
 *Date:* ${new Date().toLocaleString('en-IN')}
 
 *Customer Details:*
-📞 Name: ${order.customer.name}
-📱 Phone: ${order.customer.phone}
-📧 Email: ${order.customer.email || 'N/A'}
-📍 Address: ${order.customer.address}
+📞 Name: ${customer.name}
+📱 Phone: ${customer.phone}
+📧 Email: ${customer.email || 'N/A'}
+📍 Address: ${customer.address}
 
 *Order Items:*
 ${itemsList}
 
-*Subtotal:* ₹${order.subtotal}
-*Delivery:* ₹${order.deliveryCharge}
-*Total:* ₹${order.total}
+*Subtotal:* ₹${subtotal}
+*Delivery:* ₹${deliveryCharge}
+*Total:* ₹${grandTotal}
 
 ---
 Please confirm and process this order.

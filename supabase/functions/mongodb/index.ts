@@ -1,47 +1,25 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { MongoClient } from "https://deno.land/x/mongo@v0.32.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// MongoDB Data API configuration
 const MONGODB_URI = Deno.env.get('MONGODB_URI') || '';
 const DATABASE = 'homemade_delights';
-const DATA_API_URL = 'https://data.mongodb-api.com/app/data-api/endpoint/data/v1';
 
-// Parse MongoDB URI to extract cluster info for Data API
-function getDataApiConfig() {
-  // For MongoDB Atlas Data API, we need the API key and app ID
-  // The MONGODB_URI contains the connection string
-  // We'll use it directly with the MongoDB driver compatible with Deno
-  return {
-    database: DATABASE,
-    dataSource: 'ClusterHMS'
-  };
-}
+let client: MongoClient | null = null;
+let db: any = null;
 
-// MongoDB operations using the Atlas Data API
-async function mongoOperation(collection: string, action: string, data: any, filter?: any) {
-  const config = getDataApiConfig();
-  
-  console.log(`MongoDB ${action} on ${collection}:`, JSON.stringify({ data, filter }));
-  
-  // Since we can't use native MongoDB driver in Deno edge functions directly,
-  // we'll implement a local storage solution that mimics MongoDB behavior
-  // The actual MongoDB integration would require setting up MongoDB Data API
-  
-  // For now, we'll return structured responses that match MongoDB format
-  const response = {
-    success: true,
-    collection,
-    action,
-    data,
-    filter,
-    timestamp: new Date().toISOString()
-  };
-  
-  return response;
+async function getDatabase() {
+  if (!client) {
+    client = new MongoClient();
+    await client.connect(MONGODB_URI);
+    db = client.database(DATABASE);
+    console.log('Connected to MongoDB Atlas');
+  }
+  return db;
 }
 
 serve(async (req) => {
@@ -50,75 +28,109 @@ serve(async (req) => {
   }
 
   try {
-    const { action, collection, data, filter } = await req.json();
+    const { action, collection, data, filter, pipeline, sort, limit } = await req.json();
     
     console.log(`MongoDB operation: ${action} on ${collection}`);
     
     // Validate collection names
-    const validCollections = ['customers', 'orders', 'reviews'];
+    const validCollections = ['customers', 'orders', 'reviews', 'products'];
     if (!validCollections.includes(collection)) {
       throw new Error(`Invalid collection: ${collection}. Valid collections are: ${validCollections.join(', ')}`);
     }
 
+    const database = await getDatabase();
+    const coll = database.collection(collection);
+    
     let result;
     
     switch (action) {
-      case 'insertOne':
-        result = await mongoOperation(collection, 'insertOne', {
+      case 'insertOne': {
+        const doc = {
           ...data,
-          _id: crypto.randomUUID(),
+          _id: data._id || crypto.randomUUID(),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
-        });
+        };
+        const insertResult = await coll.insertOne(doc);
+        result = { success: true, insertedId: insertResult, document: doc };
         break;
+      }
       
-      case 'insertMany':
+      case 'insertMany': {
         const documents = data.map((doc: any) => ({
           ...doc,
-          _id: crypto.randomUUID(),
+          _id: doc._id || crypto.randomUUID(),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         }));
-        result = await mongoOperation(collection, 'insertMany', documents);
+        const insertResult = await coll.insertMany(documents);
+        result = { success: true, insertedIds: insertResult, documents };
         break;
+      }
       
-      case 'find':
-        result = await mongoOperation(collection, 'find', null, filter || {});
+      case 'find': {
+        const cursor = coll.find(filter || {});
+        if (sort) cursor.sort(sort);
+        if (limit) cursor.limit(limit);
+        const documents = await cursor.toArray();
+        result = { success: true, documents };
         break;
+      }
       
-      case 'findOne':
-        result = await mongoOperation(collection, 'findOne', null, filter || {});
+      case 'findOne': {
+        const document = await coll.findOne(filter || {});
+        result = { success: true, document };
         break;
+      }
       
-      case 'updateOne':
-        result = await mongoOperation(collection, 'updateOne', {
-          ...data,
-          updatedAt: new Date().toISOString()
-        }, filter);
+      case 'updateOne': {
+        const updateResult = await coll.updateOne(
+          filter,
+          { $set: { ...data, updatedAt: new Date().toISOString() } },
+          { upsert: true }
+        );
+        result = { success: true, ...updateResult };
         break;
+      }
       
-      case 'updateMany':
-        result = await mongoOperation(collection, 'updateMany', {
-          ...data,
-          updatedAt: new Date().toISOString()
-        }, filter);
+      case 'updateMany': {
+        const updateResult = await coll.updateMany(
+          filter,
+          { $set: { ...data, updatedAt: new Date().toISOString() } }
+        );
+        result = { success: true, ...updateResult };
         break;
+      }
       
-      case 'deleteOne':
-        result = await mongoOperation(collection, 'deleteOne', null, filter);
+      case 'deleteOne': {
+        const deleteResult = await coll.deleteOne(filter);
+        result = { success: true, deletedCount: deleteResult };
         break;
+      }
       
-      case 'deleteMany':
-        result = await mongoOperation(collection, 'deleteMany', null, filter);
+      case 'deleteMany': {
+        const deleteResult = await coll.deleteMany(filter);
+        result = { success: true, deletedCount: deleteResult };
         break;
+      }
       
-      case 'aggregate':
-        result = await mongoOperation(collection, 'aggregate', data);
+      case 'aggregate': {
+        const documents = await coll.aggregate(pipeline || data).toArray();
+        result = { success: true, documents };
         break;
+      }
+      
+      case 'count': {
+        const count = await coll.countDocuments(filter || {});
+        result = { success: true, count };
+        break;
+      }
       
       default:
         throw new Error(`Unknown action: ${action}`);
     }
+
+    console.log(`MongoDB ${action} on ${collection}: completed successfully`);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

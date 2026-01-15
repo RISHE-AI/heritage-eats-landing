@@ -1,8 +1,9 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, Menu } from "lucide-react";
+import { ShoppingCart, Menu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -19,6 +20,7 @@ const navLinks = [
 
 const Header: React.FC = () => {
   const { totalItems, cartAnimation } = useCart();
+  const { user } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
@@ -63,6 +65,12 @@ const Header: React.FC = () => {
         {/* Actions */}
         <div className="flex items-center gap-1 md:gap-2">
           <ThemeToggle />
+          
+          <Link to={user ? "/profile" : "/auth"}>
+            <Button variant="ghost" size="icon" className="h-9 w-9">
+              <User className="h-5 w-5" />
+            </Button>
+          </Link>
           
           <Link to="/checkout">
             <Button variant="ghost" size="icon" className="relative h-10 w-10 md:h-12 md:w-12">

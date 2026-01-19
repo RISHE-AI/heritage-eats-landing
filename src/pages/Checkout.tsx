@@ -74,14 +74,18 @@ const Checkout: React.FC = () => {
         setOrderId(newOrderId);
       }
 
+      const finalOrderId = orderId || `ORD${Date.now().toString(36).toUpperCase()}`;
+      if (!orderId) setOrderId(finalOrderId);
+      
       setPaymentConfirmed(true);
       toast.success("Payment confirmed! / பணம் உறுதி செய்யப்பட்டது!");
 
-      // Trigger WhatsApp notification
+      // Trigger WhatsApp notification with order details
       try {
         await supabase.functions.invoke('whatsapp-notify', {
           body: {
-            orderId: orderId || `ORD${Date.now().toString(36).toUpperCase()}`,
+            type: 'order',
+            orderId: finalOrderId,
             customer: customerDetails,
             items: items.map(item => ({
               name: item.product.nameEn,
@@ -89,11 +93,38 @@ const Checkout: React.FC = () => {
               quantity: item.quantity,
               price: item.unitPrice * item.quantity
             })),
+            subtotal: totalPrice,
+            deliveryCharge,
             grandTotal
           }
         });
       } catch (notifyError) {
         console.log('WhatsApp notification pending:', notifyError);
+      }
+
+      // Send payment receipt to admin WhatsApp
+      try {
+        await supabase.functions.invoke('whatsapp-notify', {
+          body: {
+            type: 'receipt',
+            orderId: finalOrderId,
+            customer: customerDetails,
+            items: items.map(item => ({
+              name: item.product.nameEn,
+              weight: item.selectedWeight,
+              quantity: item.quantity,
+              price: item.unitPrice * item.quantity
+            })),
+            subtotal: totalPrice,
+            deliveryCharge,
+            grandTotal,
+            paymentMethod: 'UPI',
+            paymentStatus: 'Confirmed',
+            paidAt: new Date().toISOString()
+          }
+        });
+      } catch (receiptError) {
+        console.log('Receipt notification pending:', receiptError);
       }
 
     } catch (error) {
@@ -418,6 +449,7 @@ const Checkout: React.FC = () => {
           grandTotal={grandTotal}
           deliveryCharge={deliveryCharge}
           isProcessing={isProcessing}
+          onUpdateQuantity={updateQuantity}
         />
       )}
     </div>

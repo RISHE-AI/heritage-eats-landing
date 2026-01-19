@@ -14,12 +14,16 @@ serve(async (req) => {
     const body = await req.json();
     
     // Support both formats: { order: {...} } or direct { orderId, customer, items, ... }
+    const notificationType = body.type || 'order';
     const orderId = body.orderId || body.order?.id;
     const customer = body.customer || body.order?.customer;
     const items = body.items || body.order?.items || [];
     const grandTotal = body.grandTotal || body.order?.total || body.order?.grandTotal;
     const subtotal = body.subtotal || body.order?.subtotal || 0;
     const deliveryCharge = body.deliveryCharge || body.order?.deliveryCharge || 0;
+    const paymentMethod = body.paymentMethod || 'UPI';
+    const paymentStatus = body.paymentStatus || 'Pending';
+    const paidAt = body.paidAt || null;
     
     if (!customer || !items.length) {
       return new Response(JSON.stringify({ 
@@ -30,42 +34,95 @@ serve(async (req) => {
       });
     }
     
-    // Format order message for WhatsApp
+    // Format order items list
     const itemsList = items.map((item: any) => 
       `• ${item.name || item.productName || item.product?.nameEn} (${item.weight}) x${item.quantity} - ₹${item.price || item.totalPrice || item.unitPrice}`
     ).join('\n');
     
-    const message = `
-🛒 *New Order Received!*
+    let message = '';
+    
+    if (notificationType === 'receipt') {
+      // Payment receipt format
+      message = `
+💳 *PAYMENT RECEIPT*
+━━━━━━━━━━━━━━━━━━━━━
 
-*Order ID:* ${orderId}
-*Date:* ${new Date().toLocaleString('en-IN')}
+📋 *Order ID:* ${orderId}
+📅 *Date:* ${new Date(paidAt || Date.now()).toLocaleString('en-IN')}
 
-*Customer Details:*
+━━━━━━━━━━━━━━━━━━━━━
+👤 *CUSTOMER DETAILS*
+━━━━━━━━━━━━━━━━━━━━━
 📞 Name: ${customer.name}
 📱 Phone: ${customer.phone}
 📧 Email: ${customer.email || 'N/A'}
 📍 Address: ${customer.address}
 
-*Order Items:*
+━━━━━━━━━━━━━━━━━━━━━
+🛒 *ORDER ITEMS*
+━━━━━━━━━━━━━━━━━━━━━
 ${itemsList}
 
-*Subtotal:* ₹${subtotal}
-*Delivery:* ₹${deliveryCharge}
-*Total:* ₹${grandTotal}
+━━━━━━━━━━━━━━━━━━━━━
+💰 *PAYMENT SUMMARY*
+━━━━━━━━━━━━━━━━━━━━━
+Subtotal: ₹${subtotal}
+Delivery: ${deliveryCharge === 0 ? 'FREE' : '₹' + deliveryCharge}
+━━━━━━━━━━━━━━━━━━━━━
+*TOTAL PAID: ₹${grandTotal}*
+━━━━━━━━━━━━━━━━━━━━━
 
----
-Please confirm and process this order.
-    `.trim();
+💳 Payment Method: ${paymentMethod}
+✅ Payment Status: ${paymentStatus}
+🕐 Paid At: ${new Date(paidAt || Date.now()).toLocaleString('en-IN')}
+
+━━━━━━━━━━━━━━━━━━━━━
+Thank you for your purchase!
+நன்றி! உங்கள் ஆர்டர் பதிவாகியுள்ளது.
+      `.trim();
+    } else {
+      // New order notification format
+      message = `
+🛒 *NEW ORDER RECEIVED!*
+━━━━━━━━━━━━━━━━━━━━━
+
+📋 *Order ID:* ${orderId}
+📅 *Date:* ${new Date().toLocaleString('en-IN')}
+
+━━━━━━━━━━━━━━━━━━━━━
+👤 *CUSTOMER DETAILS*
+━━━━━━━━━━━━━━━━━━━━━
+📞 Name: ${customer.name}
+📱 Phone: ${customer.phone}
+📧 Email: ${customer.email || 'N/A'}
+📍 Address: ${customer.address}
+
+━━━━━━━━━━━━━━━━━━━━━
+🛒 *ORDER ITEMS*
+━━━━━━━━━━━━━━━━━━━━━
+${itemsList}
+
+━━━━━━━━━━━━━━━━━━━━━
+💰 *ORDER TOTAL*
+━━━━━━━━━━━━━━━━━━━━━
+Subtotal: ₹${subtotal}
+Delivery: ${deliveryCharge === 0 ? 'FREE' : '₹' + deliveryCharge}
+━━━━━━━━━━━━━━━━━━━━━
+*GRAND TOTAL: ₹${grandTotal}*
+━━━━━━━━━━━━━━━━━━━━━
+
+⏳ Please confirm and process this order.
+      `.trim();
+    }
     
-    console.log('WhatsApp notification prepared:', message);
+    console.log(`WhatsApp ${notificationType} notification prepared:`, message);
     
     // In production, integrate with WhatsApp Business API
     // For now, we log and return success
     
     return new Response(JSON.stringify({ 
       success: true, 
-      message: 'Notification sent',
+      message: `${notificationType} notification sent`,
       whatsappMessage: message
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

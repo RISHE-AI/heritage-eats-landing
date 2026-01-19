@@ -1,6 +1,6 @@
 import React from "react";
 import { CustomerDetails } from "@/contexts/AuthContext";
-import { CartItem } from "@/types/product";
+import { CartItem, WeightOption } from "@/types/product";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,7 +14,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, MapPin, Phone, User, Package, Mail, Minus, Plus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CheckCircle, MapPin, Phone, User, Package, Mail, Minus, Plus, Scale } from "lucide-react";
 
 interface OrderConfirmationDialogProps {
   open: boolean;
@@ -26,6 +33,7 @@ interface OrderConfirmationDialogProps {
   deliveryCharge: number;
   isProcessing?: boolean;
   onUpdateQuantity?: (productId: string, weight: string, quantity: number) => void;
+  onUpdateWeight?: (productId: string, oldWeight: string, newWeight: string, newPrice: number) => void;
 }
 
 const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
@@ -37,9 +45,19 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   grandTotal,
   deliveryCharge,
   isProcessing = false,
-  onUpdateQuantity
+  onUpdateQuantity,
+  onUpdateWeight
 }) => {
   const subtotal = grandTotal - deliveryCharge;
+
+  const handleWeightChange = (item: CartItem, newWeight: string) => {
+    if (!onUpdateWeight || !item.product.weightOptions) return;
+    
+    const newWeightOption = item.product.weightOptions.find(w => w.weight === newWeight);
+    if (newWeightOption) {
+      onUpdateWeight(item.product.id, item.selectedWeight, newWeight, newWeightOption.price);
+    }
+  };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -97,49 +115,83 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                 <div className="space-y-3">
                   {items.map((item, index) => (
                     <div 
-                      key={index} 
-                      className="flex items-center gap-4 p-4 bg-secondary/30 rounded-lg border border-border/50"
+                      key={`${item.product.id}-${item.selectedWeight}-${index}`} 
+                      className="p-4 bg-secondary/30 rounded-lg border border-border/50"
                     >
-                      <img
-                        src={item.product.images[0]}
-                        alt={item.product.nameEn}
-                        className="h-16 w-16 rounded-md object-cover shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground truncate">{item.product.nameEn}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {item.selectedWeight} • ₹{item.unitPrice}
-                        </p>
-                      </div>
-                      {onUpdateQuantity ? (
-                        <div className="flex items-center gap-2 shrink-0">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => onUpdateQuantity(item.product.id, item.selectedWeight, item.quantity - 1)}
-                            disabled={item.quantity <= 1}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center font-medium">{item.quantity}</span>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => onUpdateQuantity(item.product.id, item.selectedWeight, item.quantity + 1)}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
+                      <div className="flex items-start gap-4">
+                        <img
+                          src={item.product.images[0]}
+                          alt={item.product.nameEn}
+                          className="h-16 w-16 rounded-md object-cover shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground truncate">{item.product.nameEn}</p>
+                          <p className="text-sm text-muted-foreground tamil-text truncate">{item.product.nameTa}</p>
+                          
+                          {/* Weight & Quantity Controls */}
+                          <div className="flex flex-wrap items-center gap-3 mt-3">
+                            {/* Weight Selector */}
+                            {onUpdateWeight && item.product.weightOptions && item.product.weightOptions.length > 0 ? (
+                              <div className="flex items-center gap-2">
+                                <Scale className="h-4 w-4 text-muted-foreground" />
+                                <Select
+                                  value={item.selectedWeight}
+                                  onValueChange={(value) => handleWeightChange(item, value)}
+                                >
+                                  <SelectTrigger className="h-8 w-[100px] text-xs bg-background">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-background z-50">
+                                    {item.product.weightOptions.map((option) => (
+                                      <SelectItem key={option.weight} value={option.weight}>
+                                        {option.weight} - ₹{option.price}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Scale className="h-4 w-4" />
+                                {item.selectedWeight}
+                              </span>
+                            )}
+
+                            {/* Quantity Controls */}
+                            {onUpdateQuantity ? (
+                              <div className="flex items-center gap-1 bg-background rounded-md border">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => onUpdateQuantity(item.product.id, item.selectedWeight, item.quantity - 1)}
+                                  disabled={item.quantity <= 1}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="w-8 text-center font-medium text-sm">{item.quantity}</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => onUpdateQuantity(item.product.id, item.selectedWeight, item.quantity + 1)}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">×{item.quantity}</span>
+                            )}
+
+                            {/* Price */}
+                            <span className="ml-auto font-semibold text-primary text-lg">
+                              ₹{item.unitPrice * item.quantity}
+                            </span>
+                          </div>
                         </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground shrink-0">×{item.quantity}</span>
-                      )}
-                      <span className="font-semibold text-foreground shrink-0 min-w-[60px] text-right">
-                        ₹{item.unitPrice * item.quantity}
-                      </span>
+                      </div>
                     </div>
                   ))}
                 </div>

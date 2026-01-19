@@ -7,6 +7,7 @@ interface CartContextType {
   addToCart: (product: Product, quantity: number, selectedWeight: string, unitPrice: number) => void;
   removeFromCart: (productId: string, weight: string) => void;
   updateQuantity: (productId: string, weight: string, quantity: number) => void;
+  updateWeight: (productId: string, oldWeight: string, newWeight: string, newPrice: number) => void;
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
@@ -78,6 +79,39 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   }, [removeFromCart]);
 
+  const updateWeight = useCallback((productId: string, oldWeight: string, newWeight: string, newPrice: number) => {
+    setItems(prev => {
+      // Check if an item with the new weight already exists
+      const existingItem = prev.find(
+        item => item.product.id === productId && item.selectedWeight === newWeight
+      );
+      
+      if (existingItem) {
+        // Merge quantities and remove old weight item
+        const oldItem = prev.find(
+          item => item.product.id === productId && item.selectedWeight === oldWeight
+        );
+        if (oldItem) {
+          return prev
+            .map(item =>
+              item.product.id === productId && item.selectedWeight === newWeight
+                ? { ...item, quantity: item.quantity + oldItem.quantity }
+                : item
+            )
+            .filter(item => !(item.product.id === productId && item.selectedWeight === oldWeight));
+        }
+      }
+      
+      // Update weight and price for the item
+      return prev.map(item =>
+        item.product.id === productId && item.selectedWeight === oldWeight
+          ? { ...item, selectedWeight: newWeight, unitPrice: newPrice }
+          : item
+      );
+    });
+    toast.success("Weight updated! / எடை புதுப்பிக்கப்பட்டது!");
+  }, []);
+
   const clearCart = useCallback(() => {
     setItems([]);
     localStorage.removeItem(CART_STORAGE_KEY);
@@ -105,6 +139,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addToCart,
         removeFromCart,
         updateQuantity,
+        updateWeight,
         clearCart,
         totalItems,
         totalPrice,

@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const { items, updateQuantity, removeFromCart, totalPrice, clearCart, deliveryCharge, grandTotal } = useCart();
+  const { items, updateQuantity, updateWeight, removeFromCart, totalPrice, clearCart, deliveryCharge, grandTotal } = useCart();
   const { user } = useAuth();
   
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails | null>(null);
@@ -450,6 +450,7 @@ const Checkout: React.FC = () => {
           deliveryCharge={deliveryCharge}
           isProcessing={isProcessing}
           onUpdateQuantity={updateQuantity}
+          onUpdateWeight={updateWeight}
         />
       )}
     </div>

@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { Product } from "@/types/product";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Eye } from "lucide-react";
+import { ShoppingCart, Eye, Heart } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useWishlist } from "@/contexts/WishlistContext";
 import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
@@ -13,7 +14,9 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore }) => {
   const { addToCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const [isAdding, setIsAdding] = useState(false);
+  const inWishlist = isInWishlist(product.id);
 
   // Get starting price from weight options or default price
   const weightOptions = product.weightOptions || [
@@ -41,13 +44,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore }) => {
       )}
       onClick={() => onReadMore(product)}
     >
-      <div className="aspect-square overflow-hidden bg-secondary/30 relative">
+      <div className="aspect-square overflow-hidden bg-secondary/30 relative group">
         <img
           src={product.images[0]}
           alt={product.nameEn}
-          className="h-full w-full object-cover transition-transform duration-500 hover:scale-110"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
           loading="lazy"
         />
+        {/* Wishlist Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleWishlist(product);
+          }}
+          className={cn(
+            "absolute top-3 right-3 h-9 w-9 rounded-full flex items-center justify-center",
+            "bg-background/80 backdrop-blur-sm shadow-md transition-all duration-200",
+            "hover:scale-110 hover:bg-background",
+            inWishlist ? "text-destructive" : "text-muted-foreground hover:text-destructive"
+          )}
+          aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+        >
+          <Heart className={cn("h-5 w-5", inWishlist && "fill-current")} />
+        </button>
         {!isAvailable && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
             <span className="bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-medium">

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth, CustomerDetails } from "@/contexts/AuthContext";
@@ -10,11 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, ArrowLeft, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useConfetti } from "@/hooks/useConfetti";
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const { items, updateQuantity, updateWeight, removeFromCart, totalPrice, clearCart, deliveryCharge, grandTotal } = useCart();
   const { user } = useAuth();
+  const { fireConfetti, fireStars } = useConfetti();
   
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails | null>(null);
   const [showPayment, setShowPayment] = useState(false);
@@ -78,6 +80,11 @@ const Checkout: React.FC = () => {
       if (!orderId) setOrderId(finalOrderId);
       
       setPaymentConfirmed(true);
+      
+      // Celebrate with confetti!
+      fireConfetti();
+      setTimeout(() => fireStars(), 300);
+      
       toast.success("Payment confirmed! / பணம் உறுதி செய்யப்பட்டது!");
 
       // Trigger WhatsApp notification with order details

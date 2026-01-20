@@ -8,10 +8,14 @@ import ProductModal from "@/components/ProductModal";
 import FeedbackSection from "@/components/FeedbackSection";
 import Footer from "@/components/Footer";
 import Chatbot from "@/components/Chatbot";
+import ScrollToTop from "@/components/ScrollToTop";
+import RecentlyViewedSection from "@/components/RecentlyViewedSection";
+import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 
 const Index: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const { recentlyViewed, addToRecentlyViewed, clearRecentlyViewed } = useRecentlyViewed();
 
   const sweets = getProductsByCategory("sweets");
   const snacks = getProductsByCategory("snacks");
@@ -22,6 +26,7 @@ const Index: React.FC = () => {
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     setModalOpen(true);
+    addToRecentlyViewed(product);
   };
 
   const handleCloseModal = () => {
@@ -91,10 +96,18 @@ const Index: React.FC = () => {
           </>
         )}
 
+        {/* Recently Viewed Section */}
+        <RecentlyViewedSection
+          products={recentlyViewed}
+          onProductClick={handleProductClick}
+          onClear={clearRecentlyViewed}
+        />
+
         <FeedbackSection />
       </main>
 
       <Footer />
+      <ScrollToTop />
       <Chatbot />
 
       <ProductModal

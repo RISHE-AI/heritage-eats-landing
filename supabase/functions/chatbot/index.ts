@@ -77,7 +77,7 @@ serve(async (req) => {
     const assistantMessage = data.choices?.[0]?.message?.content || 'Sorry, I could not process your request.';
 
     return new Response(JSON.stringify({ 
-      message: assistantMessage 
+      response: assistantMessage 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

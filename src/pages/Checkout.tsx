@@ -159,6 +159,35 @@ const Checkout: React.FC = () => {
     return `${minutes} min`;
   };
 
+  // Redirect to login if not authenticated
+  if (!user && !paymentConfirmed) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container px-4 py-16 text-center">
+          <h1 className="font-serif text-3xl font-bold mb-4">
+            Please Login to Continue
+          </h1>
+          <p className="text-muted-foreground tamil-text mb-6">
+            தொடர உள்நுழையவும்
+          </p>
+          <p className="text-muted-foreground mb-6">
+            You need to login or sign up to view your cart and place orders.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button onClick={() => navigate("/auth")}>
+              Login / Sign Up
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/")}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Continue Shopping
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (items.length === 0 && !paymentConfirmed) {
     return (
       <div className="min-h-screen bg-background">

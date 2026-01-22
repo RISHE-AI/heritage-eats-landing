@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef } from "react";
 import { Product } from "@/types/product";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, ShoppingCart, ChevronDown, ChevronUp } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Minus, Plus, ShoppingCart, ChevronDown, ChevronUp, Star, MessageSquare } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
+import ProductReviews from "./ProductReviews";
+import StarRating from "./StarRating";
 
 interface ProductModalProps {
   product: Product | null;
@@ -12,12 +15,13 @@ interface ProductModalProps {
   onClose: () => void;
 }
 
-const ProductModal: React.FC<ProductModalProps> = ({ product, open, onClose }) => {
+const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, open, onClose }, ref) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedWeight, setSelectedWeight] = useState<string | null>(null);
   const [showAllIngredients, setShowAllIngredients] = useState(false);
   const [showAllBenefits, setShowAllBenefits] = useState(false);
+  const [activeTab, setActiveTab] = useState("details");
   const { addToCart } = useCart();
 
   // Auto-slide carousel
@@ -36,6 +40,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, open, onClose }) =
     setSelectedWeight(null);
     setShowAllIngredients(false);
     setShowAllBenefits(false);
+    setActiveTab("details");
   }, [product]);
 
   if (!product) return null;
@@ -110,6 +115,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, open, onClose }) =
               <p className="mt-1 text-lg text-muted-foreground tamil-text">
                 {product.nameTa}
               </p>
+              {/* Star Rating Display */}
+              <div className="mt-2">
+                <StarRating rating={4.5} totalReviews={12} size="md" />
+              </div>
             </div>
 
             {/* Weight Selection */}
@@ -182,11 +191,24 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, open, onClose }) =
           </div>
         </div>
 
-        {/* Ingredients & Benefits Section */}
-        <div className="mt-8 border-t pt-8">
-          <h3 className="mb-6 text-center font-serif text-xl font-bold">
-            Ingredients & Benefits / பொருட்கள் & நன்மைகள்
-          </h3>
+        {/* Tabs for Details and Reviews */}
+        <div className="mt-8 border-t pt-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="details" className="gap-2">
+                <Star className="h-4 w-4" />
+                Details
+              </TabsTrigger>
+              <TabsTrigger value="reviews" className="gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Reviews
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="details" className="mt-6 animate-fade-in">
+              <h3 className="mb-6 text-center font-serif text-xl font-bold">
+                Ingredients & Benefits / பொருட்கள் & நன்மைகள்
+              </h3>
 
           <div className="grid gap-6 md:grid-cols-2">
             {/* English Column */}
@@ -291,10 +313,21 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, open, onClose }) =
               </div>
             </div>
           </div>
+            </TabsContent>
+            
+            <TabsContent value="reviews" className="mt-6 animate-fade-in">
+              <ProductReviews 
+                productId={product.id} 
+                productName={product.nameEn} 
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </DialogContent>
     </Dialog>
   );
-};
+});
+
+ProductModal.displayName = "ProductModal";
 
 export default ProductModal;

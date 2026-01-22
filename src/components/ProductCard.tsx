@@ -6,6 +6,7 @@ import { ShoppingCart, Eye, Heart } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { cn } from "@/lib/utils";
+import StarRating from "./StarRating";
 
 interface ProductCardProps {
   product: Product;
@@ -39,12 +40,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore }) => {
   return (
     <Card 
       className={cn(
-        "overflow-hidden product-card-hover shadow-card cursor-pointer transition-all",
+        "overflow-hidden product-card-hover shadow-card cursor-pointer transition-all group",
         !isAvailable && "opacity-60"
       )}
       onClick={() => onReadMore(product)}
     >
-      <div className="aspect-square overflow-hidden bg-secondary/30 relative group">
+      <div className="aspect-square overflow-hidden bg-secondary/30 relative">
         <img
           src={product.images[0]}
           alt={product.nameEn}
@@ -78,12 +79,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore }) => {
       <CardContent className="p-4">
         {/* Product Name */}
         <div className="mb-2">
-          <h3 className="font-serif text-lg font-semibold text-foreground line-clamp-1">
+          <h3 className="font-serif text-lg font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
             {product.nameEn}
           </h3>
           <p className="text-sm text-muted-foreground tamil-text line-clamp-1">
             {product.nameTa}
           </p>
+          {/* Star Rating */}
+          <div className="mt-1">
+            <StarRating rating={4.5} totalReviews={12} size="sm" />
+          </div>
         </div>
 
         {/* Price */}

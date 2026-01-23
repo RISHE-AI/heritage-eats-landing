@@ -48,19 +48,19 @@ const Header: React.FC = () => {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="container flex h-16 items-center justify-between px-4 md:px-8">
+        <div className="container flex h-14 md:h-16 items-center justify-between px-3 md:px-8">
           {/* Logo */}
           <Link to="/" className="flex flex-col items-start">
-            <span className="font-serif text-xl font-bold text-primary md:text-2xl">
+            <span className="font-serif text-lg md:text-xl lg:text-2xl font-bold text-primary">
               Homemade Delights
             </span>
-            <span className="text-xs text-muted-foreground tamil-text">
+            <span className="text-[10px] md:text-xs text-muted-foreground tamil-text hidden sm:block">
               வீட்டு சமையல் சுவைகள்
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-4">
+          <nav className="hidden lg:flex items-center gap-3 xl:gap-4">
             {navLinks.map(link => (
               <button
                 key={link.href}
@@ -75,7 +75,7 @@ const Header: React.FC = () => {
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center gap-1 md:gap-2">
+          <div className="flex items-center gap-0.5 md:gap-1.5">
             <ProductSearch onProductSelect={handleProductSelect} />
             
             <ThemeToggle />
@@ -89,16 +89,16 @@ const Header: React.FC = () => {
             </Link>
             
             <Link to="/checkout">
-              <Button variant="ghost" size="icon" className="relative h-10 w-10 md:h-12 md:w-12">
-                <ShoppingCart className="h-5 w-5 md:h-6 md:w-6" />
+              <Button variant="ghost" size="icon" className="relative h-9 w-9 md:h-10 md:w-10">
+                <ShoppingCart className="h-5 w-5" />
                 {totalItems > 0 && (
                   <span
                     className={cn(
-                      "absolute -right-1 -top-1 flex h-5 w-5 md:h-6 md:w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground font-semibold",
+                      "absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] md:text-xs text-primary-foreground font-semibold",
                       cartAnimation && "cart-badge-animate"
                     )}
                   >
-                    {totalItems}
+                    {totalItems > 99 ? '99+' : totalItems}
                   </span>
                 )}
               </Button>
@@ -107,28 +107,28 @@ const Header: React.FC = () => {
             {/* Mobile Menu */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild className="lg:hidden">
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="h-9 w-9">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-72">
-                <nav className="flex flex-col gap-2 mt-8">
+              <SheetContent side="right" className="w-[280px] p-4">
+                <nav className="flex flex-col gap-1 mt-6">
                   {navLinks.map(link => (
                     <button
                       key={link.href}
                       onClick={() => handleNavClick(link.href)}
-                      className="flex flex-col items-start p-3 rounded-lg transition-colors hover:bg-secondary active:scale-95"
+                      className="flex flex-col items-start p-3 rounded-lg transition-colors hover:bg-secondary active:scale-[0.98]"
                     >
-                      <span className="font-medium">{link.labelEn}</span>
-                      <span className="text-sm text-muted-foreground tamil-text">{link.labelTa}</span>
+                      <span className="font-medium text-sm">{link.labelEn}</span>
+                      <span className="text-xs text-muted-foreground tamil-text">{link.labelTa}</span>
                     </button>
                   ))}
-                  <div className="mt-4 pt-4 border-t">
+                  <div className="mt-3 pt-3 border-t">
                     <AboutModal 
                       trigger={
                         <button className="w-full flex flex-col items-start p-3 rounded-lg transition-colors hover:bg-secondary">
-                          <span className="font-medium">About Us</span>
-                          <span className="text-sm text-muted-foreground tamil-text">எங்களை பற்றி</span>
+                          <span className="font-medium text-sm">About Us</span>
+                          <span className="text-xs text-muted-foreground tamil-text">எங்களை பற்றி</span>
                         </button>
                       }
                     />

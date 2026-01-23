@@ -59,30 +59,30 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore }) => {
             toggleWishlist(product);
           }}
           className={cn(
-            "absolute top-3 right-3 h-9 w-9 rounded-full flex items-center justify-center",
+            "absolute top-2 right-2 h-8 w-8 md:h-9 md:w-9 rounded-full flex items-center justify-center",
             "bg-background/80 backdrop-blur-sm shadow-md transition-all duration-200",
-            "hover:scale-110 hover:bg-background",
+            "hover:scale-110 hover:bg-background active:scale-95",
             inWishlist ? "text-destructive" : "text-muted-foreground hover:text-destructive"
           )}
           aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
         >
-          <Heart className={cn("h-5 w-5", inWishlist && "fill-current")} />
+          <Heart className={cn("h-4 w-4 md:h-5 md:w-5", inWishlist && "fill-current")} />
         </button>
         {!isAvailable && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-            <span className="bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-medium">
-              Temporarily Unavailable
+            <span className="bg-destructive text-destructive-foreground px-2 py-1 rounded-full text-xs md:text-sm font-medium">
+              Unavailable
             </span>
           </div>
         )}
       </div>
-      <CardContent className="p-4">
+      <CardContent className="p-3 md:p-4">
         {/* Product Name */}
         <div className="mb-2">
-          <h3 className="font-serif text-lg font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+          <h3 className="font-serif text-base md:text-lg font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
             {product.nameEn}
           </h3>
-          <p className="text-sm text-muted-foreground tamil-text line-clamp-1">
+          <p className="text-xs md:text-sm text-muted-foreground tamil-text line-clamp-1">
             {product.nameTa}
           </p>
           {/* Star Rating */}
@@ -92,18 +92,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore }) => {
         </div>
 
         {/* Price */}
-        <p className="mb-4 text-xl font-bold text-primary">
+        <p className="mb-3 md:mb-4 text-lg md:text-xl font-bold text-primary">
           {weightOptions.length > 1 ? (
             <>
               From ₹{startingPrice}
-              <span className="ml-1 text-sm font-normal text-muted-foreground">
+              <span className="ml-1 text-xs md:text-sm font-normal text-muted-foreground">
                 / {defaultWeight.weight}{defaultWeight.unit}
               </span>
             </>
           ) : (
             <>
               ₹{product.price}
-              <span className="ml-1 text-sm font-normal text-muted-foreground">
+              <span className="ml-1 text-xs md:text-sm font-normal text-muted-foreground">
                 / {product.category === 'pickles' ? '200g' : '250g'}
               </span>
             </>
@@ -114,28 +114,28 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore }) => {
         <div className="flex flex-col gap-2">
           <Button
             variant="outline"
-            className="w-full gap-2"
+            className="w-full gap-1.5 md:gap-2 h-9 md:h-10 text-xs md:text-sm"
             onClick={(e) => {
               e.stopPropagation();
               onReadMore(product);
             }}
           >
-            <Eye className="h-4 w-4" />
+            <Eye className="h-3.5 w-3.5 md:h-4 md:w-4" />
             <span>Read More</span>
-            <span className="text-xs tamil-text hidden sm:inline">மேலும் படிக்க</span>
+            <span className="text-[10px] md:text-xs tamil-text hidden sm:inline">மேலும் படிக்க</span>
           </Button>
           
           <Button
             className={cn(
-              "w-full gap-2 transition-all",
+              "w-full gap-1.5 md:gap-2 h-9 md:h-10 text-xs md:text-sm transition-all",
               isAdding && "scale-95"
             )}
             onClick={handleQuickAdd}
             disabled={!isAvailable}
           >
-            <ShoppingCart className="h-4 w-4" />
+            <ShoppingCart className="h-3.5 w-3.5 md:h-4 md:w-4" />
             <span>Add to Cart</span>
-            <span className="text-xs tamil-text hidden sm:inline">கார்ட்டில் சேர்</span>
+            <span className="text-[10px] md:text-xs tamil-text hidden sm:inline">கார்ட்டில் சேர்</span>
           </Button>
         </div>
       </CardContent>

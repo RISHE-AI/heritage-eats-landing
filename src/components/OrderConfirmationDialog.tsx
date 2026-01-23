@@ -1,6 +1,6 @@
 import React from "react";
 import { CustomerDetails } from "@/contexts/AuthContext";
-import { CartItem, WeightOption } from "@/types/product";
+import { CartItem } from "@/types/product";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,14 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { CheckCircle, MapPin, Phone, User, Package, Mail, Minus, Plus, Scale } from "lucide-react";
+import { CheckCircle, MapPin, Phone, User, Package, Mail, Minus, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface OrderConfirmationDialogProps {
   open: boolean;
@@ -50,135 +43,152 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 }) => {
   const subtotal = grandTotal - deliveryCharge;
 
-  const handleWeightChange = (item: CartItem, newWeight: string) => {
-    if (!onUpdateWeight || !item.product.weightOptions) return;
+  const handleWeightChange = (item: CartItem, direction: 'prev' | 'next') => {
+    if (!onUpdateWeight || !item.product.weightOptions || item.product.weightOptions.length <= 1) return;
     
-    const newWeightOption = item.product.weightOptions.find(w => w.weight === newWeight);
+    const currentIndex = item.product.weightOptions.findIndex(w => 
+      `${w.weight}${w.unit}` === item.selectedWeight
+    );
+    
+    let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+    if (newIndex < 0) newIndex = item.product.weightOptions.length - 1;
+    if (newIndex >= item.product.weightOptions.length) newIndex = 0;
+    
+    const newWeightOption = item.product.weightOptions[newIndex];
     if (newWeightOption) {
-      onUpdateWeight(item.product.id, item.selectedWeight, newWeight, newWeightOption.price);
+      onUpdateWeight(
+        item.product.id, 
+        item.selectedWeight, 
+        `${newWeightOption.weight}${newWeightOption.unit}`, 
+        newWeightOption.price
+      );
     }
   };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-lg sm:max-w-xl md:max-w-2xl max-h-[95vh] p-0 overflow-hidden">
-        <AlertDialogHeader className="p-6 pb-4 border-b bg-gradient-to-r from-primary/5 to-primary/10">
-          <AlertDialogTitle className="font-serif text-2xl flex items-center gap-3">
-            <div className="p-2 rounded-full bg-primary/10">
-              <CheckCircle className="h-6 w-6 text-primary" />
+      <AlertDialogContent className="max-w-[95vw] sm:max-w-xl md:max-w-2xl max-h-[95vh] p-0 overflow-hidden">
+        <AlertDialogHeader className="p-4 md:p-6 pb-3 md:pb-4 border-b bg-gradient-to-r from-primary/5 to-primary/10">
+          <AlertDialogTitle className="font-serif text-xl md:text-2xl flex items-center gap-2 md:gap-3">
+            <div className="p-1.5 md:p-2 rounded-full bg-primary/10">
+              <CheckCircle className="h-5 w-5 md:h-6 md:w-6 text-primary" />
             </div>
             <div>
-              <span>Confirm Your Order</span>
-              <span className="block text-base font-normal text-muted-foreground tamil-text">
-                உங்கள் ஆர்டரை உறுதிப்படுத்துங்கள்
+              <span className="text-lg md:text-xl">Confirm Order</span>
+              <span className="block text-xs md:text-base font-normal text-muted-foreground tamil-text">
+                ஆர்டரை உறுதிப்படுத்துங்கள்
               </span>
             </div>
           </AlertDialogTitle>
         </AlertDialogHeader>
 
-        <ScrollArea className="max-h-[60vh]">
+        <ScrollArea className="max-h-[55vh] md:max-h-[60vh]">
           <AlertDialogDescription asChild>
-            <div className="p-6 space-y-5">
+            <div className="p-4 md:p-6 space-y-4 md:space-y-5">
               {/* Customer Details Card */}
-              <div className="bg-secondary/50 rounded-xl p-5 space-y-3">
-                <h4 className="font-semibold text-foreground flex items-center gap-2 text-base">
-                  <User className="h-5 w-5 text-primary" />
-                  Delivery Details / டெலிவரி விவரங்கள்
+              <div className="bg-secondary/50 rounded-xl p-3 md:p-5 space-y-2 md:space-y-3">
+                <h4 className="font-semibold text-foreground flex items-center gap-2 text-sm md:text-base">
+                  <User className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                  Delivery Details
                 </h4>
-                <div className="grid gap-2 pl-7">
+                <div className="grid gap-1.5 md:gap-2 pl-6 md:pl-7 text-sm">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground">{customerDetails.name}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Phone className="h-4 w-4 shrink-0" />
-                    <span>{customerDetails.phone}</span>
+                    <Phone className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" />
+                    <span className="text-xs md:text-sm">{customerDetails.phone}</span>
                   </div>
                   {customerDetails.email && (
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-4 w-4 shrink-0" />
-                      <span>{customerDetails.email}</span>
+                      <Mail className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" />
+                      <span className="text-xs md:text-sm truncate">{customerDetails.email}</span>
                     </div>
                   )}
                   <div className="flex items-start gap-2 text-muted-foreground">
-                    <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
-                    <span className="whitespace-pre-wrap">{customerDetails.address}</span>
+                    <MapPin className="h-3.5 w-3.5 md:h-4 md:w-4 mt-0.5 shrink-0" />
+                    <span className="text-xs md:text-sm whitespace-pre-wrap">{customerDetails.address}</span>
                   </div>
                 </div>
               </div>
 
               {/* Order Items Card */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-foreground flex items-center gap-2 text-base">
-                  <Package className="h-5 w-5 text-primary" />
-                  Order Items ({items.length}) / ஆர்டர் பொருட்கள்
+              <div className="space-y-2 md:space-y-3">
+                <h4 className="font-semibold text-foreground flex items-center gap-2 text-sm md:text-base">
+                  <Package className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                  Items ({items.length})
                 </h4>
-                <div className="space-y-3">
+                <div className="space-y-2 md:space-y-3">
                   {items.map((item, index) => (
                     <div 
                       key={`${item.product.id}-${item.selectedWeight}-${index}`} 
-                      className="p-4 bg-secondary/30 rounded-lg border border-border/50"
+                      className="p-3 md:p-4 bg-secondary/30 rounded-lg border border-border/50"
                     >
-                      <div className="flex items-start gap-4">
+                      <div className="flex items-start gap-3">
                         <img
                           src={item.product.images[0]}
                           alt={item.product.nameEn}
-                          className="h-16 w-16 rounded-md object-cover shrink-0"
+                          className="h-14 w-14 md:h-16 md:w-16 rounded-md object-cover shrink-0"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground truncate">{item.product.nameEn}</p>
-                          <p className="text-sm text-muted-foreground tamil-text truncate">{item.product.nameTa}</p>
+                          <p className="font-medium text-foreground text-sm md:text-base truncate">{item.product.nameEn}</p>
+                          <p className="text-xs md:text-sm text-muted-foreground tamil-text truncate">{item.product.nameTa}</p>
                           
                           {/* Weight & Quantity Controls */}
-                          <div className="flex flex-wrap items-center gap-3 mt-3">
-                            {/* Weight Selector */}
-                            {onUpdateWeight && item.product.weightOptions && item.product.weightOptions.length > 0 ? (
-                              <div className="flex items-center gap-2">
-                                <Scale className="h-4 w-4 text-muted-foreground" />
-                                <Select
-                                  value={item.selectedWeight}
-                                  onValueChange={(value) => handleWeightChange(item, value)}
+                          <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-2 md:mt-3">
+                            {/* Weight Selector - Stepper Style */}
+                            {onUpdateWeight && item.product.weightOptions && item.product.weightOptions.length > 1 ? (
+                              <div className="flex items-center bg-background rounded-lg border h-9 md:h-10">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-8 md:h-10 md:w-9 rounded-r-none"
+                                  onClick={() => handleWeightChange(item, 'prev')}
                                 >
-                                  <SelectTrigger className="h-8 w-[100px] text-xs bg-background">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent className="bg-background z-50">
-                                    {item.product.weightOptions.map((option) => (
-                                      <SelectItem key={option.weight} value={option.weight}>
-                                        {option.weight} - ₹{option.price}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                  <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <span className="px-2 md:px-3 text-xs md:text-sm font-medium min-w-[60px] md:min-w-[70px] text-center">
+                                  {item.selectedWeight}
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-8 md:h-10 md:w-9 rounded-l-none"
+                                  onClick={() => handleWeightChange(item, 'next')}
+                                >
+                                  <ChevronRight className="h-4 w-4" />
+                                </Button>
                               </div>
                             ) : (
-                              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                                <Scale className="h-4 w-4" />
+                              <span className="text-xs md:text-sm text-muted-foreground bg-secondary px-2 py-1.5 rounded-md">
                                 {item.selectedWeight}
                               </span>
                             )}
 
-                            {/* Quantity Controls */}
+                            {/* Quantity Controls - Stepper Style */}
                             {onUpdateQuantity ? (
-                              <div className="flex items-center gap-1 bg-background rounded-md border">
+                              <div className="flex items-center bg-background rounded-lg border h-9 md:h-10">
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8"
+                                  className="h-9 w-9 md:h-10 md:w-10 rounded-r-none"
                                   onClick={() => onUpdateQuantity(item.product.id, item.selectedWeight, item.quantity - 1)}
                                   disabled={item.quantity <= 1}
                                 >
-                                  <Minus className="h-3 w-3" />
+                                  <Minus className="h-4 w-4" />
                                 </Button>
-                                <span className="w-8 text-center font-medium text-sm">{item.quantity}</span>
+                                <span className="w-8 md:w-10 text-center font-semibold text-sm md:text-base">{item.quantity}</span>
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8"
+                                  className="h-9 w-9 md:h-10 md:w-10 rounded-l-none"
                                   onClick={() => onUpdateQuantity(item.product.id, item.selectedWeight, item.quantity + 1)}
                                 >
-                                  <Plus className="h-3 w-3" />
+                                  <Plus className="h-4 w-4" />
                                 </Button>
                               </div>
                             ) : (
@@ -186,7 +196,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                             )}
 
                             {/* Price */}
-                            <span className="ml-auto font-semibold text-primary text-lg">
+                            <span className="ml-auto font-bold text-primary text-base md:text-lg">
                               ₹{item.unitPrice * item.quantity}
                             </span>
                           </div>
@@ -200,27 +210,27 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
               <Separator />
 
               {/* Totals Card */}
-              <div className="bg-primary/5 rounded-xl p-5 space-y-3">
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Subtotal / துணை மொத்தம்</span>
+              <div className="bg-primary/5 rounded-xl p-3 md:p-5 space-y-2 md:space-y-3">
+                <div className="flex justify-between text-muted-foreground text-sm">
+                  <span>Subtotal</span>
                   <span className="font-medium text-foreground">₹{subtotal}</span>
                 </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Delivery / டெலிவரி</span>
+                <div className="flex justify-between text-muted-foreground text-sm">
+                  <span>Delivery</span>
                   <span className={`font-medium ${deliveryCharge === 0 ? "text-green-600" : "text-foreground"}`}>
                     {deliveryCharge === 0 ? "FREE" : `₹${deliveryCharge}`}
                   </span>
                 </div>
                 <Separator />
-                <div className="flex justify-between text-xl font-bold">
-                  <span className="text-foreground">Total / மொத்தம்</span>
+                <div className="flex justify-between text-lg md:text-xl font-bold">
+                  <span className="text-foreground">Total</span>
                   <span className="text-primary">₹{grandTotal}</span>
                 </div>
               </div>
 
-              <p className="text-xs text-muted-foreground text-center bg-muted/50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground text-center bg-muted/50 rounded-lg p-2.5 md:p-3">
                 By confirming, you agree to proceed with the payment.
-                <span className="block tamil-text mt-1">
+                <span className="block tamil-text mt-0.5 md:mt-1">
                   உறுதிப்படுத்துவதன் மூலம், பணம் செலுத்த ஒப்புக்கொள்கிறீர்கள்.
                 </span>
               </p>
@@ -228,24 +238,24 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
           </AlertDialogDescription>
         </ScrollArea>
 
-        <AlertDialogFooter className="p-6 pt-4 border-t bg-muted/30 flex-col sm:flex-row gap-3">
+        <AlertDialogFooter className="p-4 md:p-6 pt-3 md:pt-4 border-t bg-muted/30 flex-row gap-2 md:gap-3">
           <AlertDialogCancel 
             disabled={isProcessing}
-            className="sm:flex-1"
+            className="flex-1 h-11 md:h-10 text-sm"
           >
-            Cancel / ரத்து
+            Cancel
           </AlertDialogCancel>
           <AlertDialogAction 
             onClick={onConfirm} 
             disabled={isProcessing}
-            className="sm:flex-1 bg-primary hover:bg-primary/90"
+            className="flex-1 h-11 md:h-10 bg-primary hover:bg-primary/90 text-sm"
           >
             {isProcessing ? (
               <span className="animate-pulse">Processing...</span>
             ) : (
               <>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Confirm Order / ஆர்டரை உறுதிசெய்
+                <CheckCircle className="h-4 w-4 mr-1.5" />
+                Confirm
               </>
             )}
           </AlertDialogAction>

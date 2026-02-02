@@ -280,7 +280,10 @@ serve(async (req) => {
 
     if (req.method === 'GET') {
       const orderId = url.searchParams.get('id');
+      const phone = url.searchParams.get('phone');
+      const isTrackingRequest = url.pathname.includes('/track');
       
+      // Track by Order ID
       if (orderId) {
         const order = ordersStore.get(orderId);
         
@@ -301,7 +304,35 @@ serve(async (req) => {
         });
       }
       
-      return new Response(JSON.stringify({ error: 'Order ID required' }), {
+      // Track by Phone Number
+      if (phone && isTrackingRequest) {
+        const customerOrders = Array.from(ordersStore.values())
+          .filter(o => o.customer.phone === phone)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        if (customerOrders.length === 0) {
+          return new Response(JSON.stringify({ 
+            error: 'No orders found for this phone number',
+            orders: []
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        // Update canCancel status for all orders
+        customerOrders.forEach(order => {
+          if (new Date() > new Date(order.cancelDeadline)) {
+            order.canCancel = false;
+          }
+        });
+        
+        return new Response(JSON.stringify({ orders: customerOrders }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      return new Response(JSON.stringify({ error: 'Order ID or phone number required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

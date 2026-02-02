@@ -1,5 +1,6 @@
 import React from "react";
-import { Phone, Mail, MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Phone, Mail, MapPin, Package } from "lucide-react";
 
 const Footer: React.FC = () => {
   return (
@@ -57,6 +58,13 @@ const Footer: React.FC = () => {
               <a href="#feedback" className="block text-sm md:text-base text-background/80 hover:text-gold transition-colors py-1">
                 Reviews / மதிப்புரைகள்
               </a>
+              <Link 
+                to="/track-order" 
+                className="flex items-center gap-1.5 text-sm md:text-base text-background/80 hover:text-gold transition-colors py-1"
+              >
+                <Package className="h-4 w-4" />
+                Track Order / ஆர்டர் கண்காணி
+              </Link>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, Menu, User } from "lucide-react";
+import { ShoppingCart, Menu, User, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,7 @@ const navLinks = [
   { href: "#malts", labelEn: "Malts", labelTa: "மால்ட்" },
   { href: "#podi", labelEn: "Podi", labelTa: "பொடி" },
   { href: "#feedback", labelEn: "Reviews", labelTa: "மதிப்புரைகள்" },
+  { href: "/track-order", labelEn: "Track Order", labelTa: "ஆர்டர் கண்காணி", isLink: true },
 ];
 
 const Header: React.FC = () => {
@@ -30,7 +31,11 @@ const Header: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const handleNavClick = (href: string) => {
+  const handleNavClick = (href: string, isLink?: boolean) => {
+    if (isLink) {
+      setMobileMenuOpen(false);
+      return;
+    }
     if (location.pathname !== "/") {
       window.location.href = "/" + href;
     } else {
@@ -61,16 +66,30 @@ const Header: React.FC = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-3 xl:gap-4">
-            {navLinks.map(link => (
-              <button
-                key={link.href}
-                onClick={() => handleNavClick(link.href)}
-                className="group flex flex-col items-center transition-all hover:text-primary hover:scale-105"
-              >
-                <span className="text-sm font-medium">{link.labelEn}</span>
-                <span className="text-xs text-muted-foreground tamil-text group-hover:text-primary/70">{link.labelTa}</span>
-              </button>
-            ))}
+            {navLinks.map(link => 
+              (link as any).isLink ? (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className="group flex flex-col items-center transition-all hover:text-primary hover:scale-105"
+                >
+                  <span className="text-sm font-medium flex items-center gap-1">
+                    <Package className="h-3.5 w-3.5" />
+                    {link.labelEn}
+                  </span>
+                  <span className="text-xs text-muted-foreground tamil-text group-hover:text-primary/70">{link.labelTa}</span>
+                </Link>
+              ) : (
+                <button
+                  key={link.href}
+                  onClick={() => handleNavClick(link.href)}
+                  className="group flex flex-col items-center transition-all hover:text-primary hover:scale-105"
+                >
+                  <span className="text-sm font-medium">{link.labelEn}</span>
+                  <span className="text-xs text-muted-foreground tamil-text group-hover:text-primary/70">{link.labelTa}</span>
+                </button>
+              )
+            )}
             <AboutModal />
           </nav>
 
@@ -113,16 +132,31 @@ const Header: React.FC = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] p-4">
                 <nav className="flex flex-col gap-1 mt-6">
-                  {navLinks.map(link => (
-                    <button
-                      key={link.href}
-                      onClick={() => handleNavClick(link.href)}
-                      className="flex flex-col items-start p-3 rounded-lg transition-colors hover:bg-secondary active:scale-[0.98]"
-                    >
-                      <span className="font-medium text-sm">{link.labelEn}</span>
-                      <span className="text-xs text-muted-foreground tamil-text">{link.labelTa}</span>
-                    </button>
-                  ))}
+                  {navLinks.map(link => 
+                    (link as any).isLink ? (
+                      <Link
+                        key={link.href}
+                        to={link.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex flex-col items-start p-3 rounded-lg transition-colors hover:bg-secondary active:scale-[0.98]"
+                      >
+                        <span className="font-medium text-sm flex items-center gap-1.5">
+                          <Package className="h-4 w-4" />
+                          {link.labelEn}
+                        </span>
+                        <span className="text-xs text-muted-foreground tamil-text">{link.labelTa}</span>
+                      </Link>
+                    ) : (
+                      <button
+                        key={link.href}
+                        onClick={() => handleNavClick(link.href)}
+                        className="flex flex-col items-start p-3 rounded-lg transition-colors hover:bg-secondary active:scale-[0.98]"
+                      >
+                        <span className="font-medium text-sm">{link.labelEn}</span>
+                        <span className="text-xs text-muted-foreground tamil-text">{link.labelTa}</span>
+                      </button>
+                    )
+                  )}
                   <div className="mt-3 pt-3 border-t">
                     <AboutModal 
                       trigger={

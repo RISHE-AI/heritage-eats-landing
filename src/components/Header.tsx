@@ -20,7 +20,7 @@ const navLinks = [
   { href: "#malts", labelEn: "Malts", labelTa: "மால்ட்" },
   { href: "#podi", labelEn: "Podi", labelTa: "பொடி" },
   { href: "#feedback", labelEn: "Reviews", labelTa: "மதிப்புரைகள்" },
-  { href: "/track-order", labelEn: "Track Order", labelTa: "ஆர்டர் கண்காணி", isLink: true },
+  
 ];
 
 const Header: React.FC = () => {
@@ -57,10 +57,10 @@ const Header: React.FC = () => {
           {/* Logo */}
           <Link to="/" className="flex flex-col items-start">
             <span className="font-serif text-lg md:text-xl lg:text-2xl font-bold text-primary">
-              Homemade Delights
+              Maghizam Foods
             </span>
             <span className="text-[10px] md:text-xs text-muted-foreground tamil-text hidden sm:block">
-              வீட்டு சமையல் சுவைகள்
+              மகிழம் உணவுகள்
             </span>
           </Link>
 
@@ -96,17 +96,17 @@ const Header: React.FC = () => {
           {/* Actions */}
           <div className="flex items-center gap-0.5 md:gap-1.5">
             <ProductSearch onProductSelect={handleProductSelect} />
-            
+
             <ThemeToggle />
-            
+
             <WishlistSheet onProductClick={handleProductSelect} />
-            
+
             <Link to={user ? "/profile" : "/auth"}>
               <Button variant="ghost" size="icon" className="h-9 w-9">
                 <User className="h-5 w-5" />
               </Button>
             </Link>
-            
+
             <Link to="/checkout">
               <Button variant="ghost" size="icon" className="relative h-9 w-9 md:h-10 md:w-10">
                 <ShoppingCart className="h-5 w-5" />
@@ -158,7 +158,7 @@ const Header: React.FC = () => {
                     )
                   )}
                   <div className="mt-3 pt-3 border-t">
-                    <AboutModal 
+                    <AboutModal
                       trigger={
                         <button className="w-full flex flex-col items-start p-3 rounded-lg transition-colors hover:bg-secondary">
                           <span className="font-medium text-sm">About Us</span>

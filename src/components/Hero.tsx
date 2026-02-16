@@ -22,13 +22,13 @@ const Hero: React.FC = () => {
         <div className="mx-auto max-w-3xl text-center">
           {/* English Content */}
           <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-foreground animate-fade-in">
-            Traditional Homemade
+            Maghizam Homemade Delights
             <span className="block text-primary">Snacks & Sweets</span>
           </h1>
           
           {/* Tamil Content */}
           <h2 className="mt-2 md:mt-4 font-serif text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-muted-foreground animate-fade-in tamil-text">
-            பாரம்பரிய வீட்டு தின்பண்டங்கள்
+            மகிழம் வீட்டு தின்பண்டங்கள்
             <span className="block text-primary/80">மற்றும் இனிப்புகள்</span>
           </h2>
 

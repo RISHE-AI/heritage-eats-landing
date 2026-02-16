@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Product } from "@/types/product";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,38 +7,56 @@ import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { cn } from "@/lib/utils";
 import StarRating from "./StarRating";
+import { fetchReviewStats } from "@/services/api";
 
 interface ProductCardProps {
   product: Product;
   onReadMore: (product: Product) => void;
 }
 
+const BADGE_STYLES: Record<string, { bg: string; text: string; animation: string }> = {
+  new: { bg: 'bg-emerald-500', text: 'New', animation: 'animate-pulse' },
+  hot: { bg: 'bg-red-500', text: '🔥 Hot', animation: 'animate-bounce' },
+  'top-seller': { bg: 'bg-amber-500', text: '⭐ Top Seller', animation: '' },
+  limited: { bg: 'bg-purple-500', text: 'Limited', animation: 'animate-pulse' },
+  custom: { bg: 'bg-blue-500', text: 'Special', animation: '' },
+};
+
 const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore }) => {
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [isAdding, setIsAdding] = useState(false);
+  const [reviewStats, setReviewStats] = useState({ reviewCount: 0, averageRating: 0 });
+  const [selectedWeightIdx, setSelectedWeightIdx] = useState(0);
   const inWishlist = isInWishlist(product.id);
 
-  // Get starting price from weight options or default price
-  const weightOptions = product.weightOptions || [
+  // Get weight options
+  const weightOptions = product.weightOptions?.length ? product.weightOptions : [
     { weight: "250", price: product.price, unit: "g" }
   ];
-  const startingPrice = Math.min(...weightOptions.map(w => w.price));
-  const defaultWeight = weightOptions[0];
+  const currentWeight = weightOptions[selectedWeightIdx];
+  const currentPrice = currentWeight.price;
 
-  // Quick add with default weight
+  // Fetch dynamic review stats
+  useEffect(() => {
+    fetchReviewStats(product.id).then(res => {
+      if (res.success) setReviewStats(res.data);
+    }).catch(() => { });
+  }, [product.id]);
+
+  // Quick add with selected weight
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsAdding(true);
-    addToCart(product, 1, `${defaultWeight.weight}${defaultWeight.unit}`, defaultWeight.price);
+    addToCart(product, 1, currentWeight.weight, currentPrice);
     setTimeout(() => setIsAdding(false), 300);
   };
 
-  // Check if product is available
   const isAvailable = product.available !== false;
+  const badge = product.badge && BADGE_STYLES[product.badge];
 
   return (
-    <Card 
+    <Card
       className={cn(
         "overflow-hidden product-card-hover shadow-card cursor-pointer transition-all group",
         !isAvailable && "opacity-60"
@@ -52,7 +70,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore }) => {
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
           loading="lazy"
         />
-        {/* Wishlist Button */}
+        {/* Badge - Top Left */}
+        {badge && (
+          <span
+            className={cn(
+              "absolute top-2 left-2 px-2 py-1 rounded-full text-white text-[10px] md:text-xs font-bold shadow-md z-10",
+              badge.bg,
+              badge.animation
+            )}
+          >
+            {badge.text}
+          </span>
+        )}
+        {/* Wishlist Button - Top Right */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -85,29 +115,41 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore }) => {
           <p className="text-xs md:text-sm text-muted-foreground tamil-text line-clamp-1">
             {product.nameTa}
           </p>
-          {/* Star Rating */}
+          {/* Dynamic Star Rating */}
           <div className="mt-1">
-            <StarRating rating={4.5} totalReviews={12} size="sm" />
+            <StarRating
+              rating={reviewStats.averageRating || 0}
+              totalReviews={reviewStats.reviewCount}
+              size="sm"
+            />
           </div>
         </div>
 
+        {/* Weight Dropdown */}
+        {weightOptions.length > 1 && (
+          <select
+            value={selectedWeightIdx}
+            onChange={(e) => {
+              e.stopPropagation();
+              setSelectedWeightIdx(Number(e.target.value));
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full mb-2 px-2 py-1.5 rounded-md border border-border bg-background text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            {weightOptions.map((w, i) => (
+              <option key={i} value={i}>
+                {w.weight} — ₹{w.price}
+              </option>
+            ))}
+          </select>
+        )}
+
         {/* Price */}
         <p className="mb-3 md:mb-4 text-lg md:text-xl font-bold text-primary">
-          {weightOptions.length > 1 ? (
-            <>
-              From ₹{startingPrice}
-              <span className="ml-1 text-xs md:text-sm font-normal text-muted-foreground">
-                / {defaultWeight.weight}{defaultWeight.unit}
-              </span>
-            </>
-          ) : (
-            <>
-              ₹{product.price}
-              <span className="ml-1 text-xs md:text-sm font-normal text-muted-foreground">
-                / {product.category === 'pickles' ? '200g' : '250g'}
-              </span>
-            </>
-          )}
+          ₹{currentPrice}
+          <span className="ml-1 text-xs md:text-sm font-normal text-muted-foreground">
+            / {currentWeight.weight}
+          </span>
         </p>
 
         {/* Action Buttons */}
@@ -124,7 +166,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore }) => {
             <span>Read More</span>
             <span className="text-[10px] md:text-xs tamil-text hidden sm:inline">மேலும் படிக்க</span>
           </Button>
-          
+
           <Button
             className={cn(
               "w-full gap-1.5 md:gap-2 h-9 md:h-10 text-xs md:text-sm transition-all",

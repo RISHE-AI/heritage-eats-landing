@@ -120,6 +120,11 @@ const Invoice: React.FC = () => {
                         <p className="text-xs text-muted-foreground">
                           {item.selectedWeight}
                         </p>
+                        {item.customMessage && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5 italic">
+                            📝 {item.customMessage}
+                          </p>
+                        )}
                       </td>
                       <td className="p-3 text-center">{item.quantity}</td>
                       <td className="p-3 text-right">₹{item.unitPrice}</td>
@@ -141,9 +146,7 @@ const Invoice: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Delivery:</span>
-                  <span className={order.deliveryCharge === 0 ? "text-success" : ""}>
-                    {order.deliveryCharge === 0 ? "FREE" : `₹${order.deliveryCharge}`}
-                  </span>
+                  <span>₹{order.deliveryCharge}</span>
                 </div>
                 <div className="flex justify-between py-2 border-t-2 border-primary">
                   <span className="font-bold text-lg">Grand Total:</span>

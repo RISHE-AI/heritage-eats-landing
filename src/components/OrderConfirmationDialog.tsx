@@ -45,21 +45,21 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 
   const handleWeightChange = (item: CartItem, direction: 'prev' | 'next') => {
     if (!onUpdateWeight || !item.product.weightOptions || item.product.weightOptions.length <= 1) return;
-    
-    const currentIndex = item.product.weightOptions.findIndex(w => 
-      `${w.weight}${w.unit}` === item.selectedWeight
+
+    const currentIndex = item.product.weightOptions.findIndex(w =>
+      w.weight === item.selectedWeight
     );
-    
+
     let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
     if (newIndex < 0) newIndex = item.product.weightOptions.length - 1;
     if (newIndex >= item.product.weightOptions.length) newIndex = 0;
-    
+
     const newWeightOption = item.product.weightOptions[newIndex];
     if (newWeightOption) {
       onUpdateWeight(
-        item.product.id, 
-        item.selectedWeight, 
-        `${newWeightOption.weight}${newWeightOption.unit}`, 
+        item.product.id,
+        item.selectedWeight,
+        newWeightOption.weight,
         newWeightOption.price
       );
     }
@@ -67,7 +67,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-[95vw] sm:max-w-xl md:max-w-2xl max-h-[95vh] p-0 overflow-hidden">
+      <AlertDialogContent className="max-w-[95vw] sm:max-w-2xl md:max-w-3xl max-h-[95vh] p-0 overflow-hidden">
         <AlertDialogHeader className="p-4 md:p-6 pb-3 md:pb-4 border-b bg-gradient-to-r from-primary/5 to-primary/10">
           <AlertDialogTitle className="font-serif text-xl md:text-2xl flex items-center gap-2 md:gap-3">
             <div className="p-1.5 md:p-2 rounded-full bg-primary/10">
@@ -120,8 +120,8 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                 </h4>
                 <div className="space-y-2 md:space-y-3">
                   {items.map((item, index) => (
-                    <div 
-                      key={`${item.product.id}-${item.selectedWeight}-${index}`} 
+                    <div
+                      key={`${item.product.id}-${item.selectedWeight}-${index}`}
                       className="p-3 md:p-4 bg-secondary/30 rounded-lg border border-border/50"
                     >
                       <div className="flex items-start gap-3">
@@ -133,7 +133,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-foreground text-sm md:text-base truncate">{item.product.nameEn}</p>
                           <p className="text-xs md:text-sm text-muted-foreground tamil-text truncate">{item.product.nameTa}</p>
-                          
+
                           {/* Weight & Quantity Controls */}
                           <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-2 md:mt-3">
                             {/* Weight Selector - Stepper Style */}
@@ -202,6 +202,12 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                           </div>
                         </div>
                       </div>
+                      {/* Custom Message */}
+                      {item.customMessage && (
+                        <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded italic">
+                          📝 {item.customMessage}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -217,8 +223,8 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                 </div>
                 <div className="flex justify-between text-muted-foreground text-sm">
                   <span>Delivery</span>
-                  <span className={`font-medium ${deliveryCharge === 0 ? "text-green-600" : "text-foreground"}`}>
-                    {deliveryCharge === 0 ? "FREE" : `₹${deliveryCharge}`}
+                  <span className="font-medium text-foreground">
+                    ₹{deliveryCharge}
                   </span>
                 </div>
                 <Separator />
@@ -239,14 +245,14 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
         </ScrollArea>
 
         <AlertDialogFooter className="p-4 md:p-6 pt-3 md:pt-4 border-t bg-muted/30 flex-row gap-2 md:gap-3">
-          <AlertDialogCancel 
+          <AlertDialogCancel
             disabled={isProcessing}
             className="flex-1 h-11 md:h-10 text-sm"
           >
             Cancel
           </AlertDialogCancel>
-          <AlertDialogAction 
-            onClick={onConfirm} 
+          <AlertDialogAction
+            onClick={onConfirm}
             disabled={isProcessing}
             className="flex-1 h-11 md:h-10 bg-primary hover:bg-primary/90 text-sm"
           >

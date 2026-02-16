@@ -2,8 +2,8 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Product } from "@/types/product";
-import { products } from "@/data/products";
+import { Product, transformProduct } from "@/types/product";
+import { fetchProducts } from "@/services/api";
 import { cn } from "@/lib/utils";
 
 interface ProductSearchProps {
@@ -14,20 +14,35 @@ const ProductSearch: React.FC<ProductSearchProps> = ({ onProductSelect }) => {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const result = await fetchProducts();
+        if (result.success && result.data) {
+          setAllProducts(result.data.map((p: any) => transformProduct(p)));
+        }
+      } catch (error) {
+        console.error('Failed to load products for search:', error);
+      }
+    };
+    loadProducts();
+  }, []);
+
   const searchResults = useMemo(() => {
     if (!query.trim()) return [];
-    
+
     const searchTerm = query.toLowerCase();
-    return products.filter(product => 
+    return allProducts.filter(product =>
       product.nameEn.toLowerCase().includes(searchTerm) ||
       product.nameTa.includes(query) ||
       product.category.toLowerCase().includes(searchTerm) ||
       product.descriptionEn.toLowerCase().includes(searchTerm)
     ).slice(0, 6);
-  }, [query]);
+  }, [query, allProducts]);
 
   // Close on click outside
   useEffect(() => {

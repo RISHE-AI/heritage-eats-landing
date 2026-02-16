@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { adminGetCustomers } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Search, ChevronLeft, ChevronRight, User, Phone, 
-  Mail, MapPin, ShoppingCart, RefreshCw, Eye 
+import {
+  Search, ChevronLeft, ChevronRight, User, Phone,
+  Mail, MapPin, ShoppingCart, RefreshCw, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AdminCustomersProps {
   password: string;
+  onLogout: () => void;
 }
 
 interface Customer {
@@ -29,7 +30,7 @@ interface Customer {
   updatedAt?: string;
 }
 
-const AdminCustomers: React.FC<AdminCustomersProps> = ({ password }) => {
+const AdminCustomers: React.FC<AdminCustomersProps> = ({ password, onLogout }) => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,26 +41,21 @@ const AdminCustomers: React.FC<AdminCustomersProps> = ({ password }) => {
 
   useEffect(() => {
     fetchCustomers();
-  }, [password, currentPage]);
+  }, [currentPage]);
 
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('admin', {
-        body: { 
-          action: 'getCustomers', 
-          password,
-          page: currentPage,
-          limit: 10,
-          search: searchQuery
-        }
-      });
-
-      if (error) throw error;
-      setCustomers(data.customers || []);
-      setTotalPages(data.totalPages || 1);
-    } catch (error) {
+      const result = await adminGetCustomers();
+      if (result.success) {
+        setCustomers(result.data || []);
+        setTotalPages(Math.ceil((result.data?.length || 0) / 10) || 1);
+      }
+    } catch (error: any) {
       console.error('Error fetching customers:', error);
+      if (error.message && (error.message.includes('Not authorized') || error.message.includes('token failed'))) {
+        onLogout();
+      }
       toast.error('Failed to load customers');
     } finally {
       setLoading(false);
@@ -78,6 +74,14 @@ const AdminCustomers: React.FC<AdminCustomersProps> = ({ password }) => {
       year: 'numeric'
     });
   };
+
+  const filteredCustomers = customers.filter(c => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return c.name.toLowerCase().includes(q) ||
+      c.phone.includes(q) ||
+      (c.email && c.email.toLowerCase().includes(q));
+  });
 
   if (loading && customers.length === 0) {
     return (
@@ -127,13 +131,13 @@ const AdminCustomers: React.FC<AdminCustomersProps> = ({ password }) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {customers.length === 0 ? (
+          {filteredCustomers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No customers found
             </div>
           ) : (
             <div className="space-y-4">
-              {customers.map((customer) => (
+              {filteredCustomers.map((customer) => (
                 <div
                   key={customer._id}
                   className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors gap-4"
@@ -217,7 +221,7 @@ const AdminCustomers: React.FC<AdminCustomersProps> = ({ password }) => {
           <DialogHeader>
             <DialogTitle>Customer Details</DialogTitle>
           </DialogHeader>
-          
+
           {selectedCustomer && (
             <div className="space-y-4">
               <div className="flex items-center gap-4">

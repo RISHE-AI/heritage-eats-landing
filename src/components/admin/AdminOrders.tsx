@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchOrders as apiFetchOrders, updateOrderStatus as apiUpdateOrderStatus } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,14 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Search, Filter, ChevronLeft, ChevronRight, Eye, 
-  Package, Clock, CheckCircle, XCircle, RefreshCw 
+import {
+  Search, Filter, ChevronLeft, ChevronRight, Eye,
+  Package, Clock, CheckCircle, XCircle, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AdminOrdersProps {
   password: string;
+  onLogout: () => void;
 }
 
 interface Order {
@@ -31,11 +32,15 @@ interface Order {
   deliveryCharge: number;
   total?: number;
   grandTotal?: number;
+  totalAmount?: number;
   status: string;
+  orderStatus?: string;
+  paymentStatus?: string;
+  paymentMethod?: string;
   createdAt: string;
 }
 
-const AdminOrders: React.FC<AdminOrdersProps> = ({ password }) => {
+const AdminOrders: React.FC<AdminOrdersProps> = ({ password, onLogout }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,26 +51,21 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ password }) => {
 
   useEffect(() => {
     fetchOrders();
-  }, [password, currentPage, statusFilter]);
+  }, [currentPage, statusFilter]);
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('admin', {
-        body: { 
-          action: 'getOrders', 
-          password,
-          page: currentPage,
-          limit: 10,
-          status: statusFilter
-        }
-      });
-
-      if (error) throw error;
-      setOrders(data.orders || []);
-      setTotalPages(data.totalPages || 1);
-    } catch (error) {
+      const result = await apiFetchOrders(statusFilter === 'all' ? undefined : statusFilter);
+      if (result.success) {
+        setOrders(result.data || []);
+        setTotalPages(Math.ceil((result.data?.length || 0) / 10) || 1);
+      }
+    } catch (error: any) {
       console.error('Error fetching orders:', error);
+      if (error.message && (error.message.includes('Not authorized') || error.message.includes('token failed'))) {
+        onLogout();
+      }
       toast.error('Failed to load orders');
     } finally {
       setLoading(false);
@@ -74,16 +74,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ password }) => {
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
-      const { error } = await supabase.functions.invoke('admin', {
-        body: { 
-          action: 'updateOrderStatus', 
-          password,
-          orderId,
-          status
-        }
-      });
-
-      if (error) throw error;
+      await apiUpdateOrderStatus(orderId, { orderStatus: status });
       toast.success('Order status updated');
       fetchOrders();
       setShowOrderDialog(false);
@@ -98,12 +89,13 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ password }) => {
       pending: { variant: 'secondary', icon: Clock },
       confirmed: { variant: 'default', icon: Package },
       completed: { variant: 'default', icon: CheckCircle },
+      delivered: { variant: 'default', icon: CheckCircle },
       cancelled: { variant: 'destructive', icon: XCircle },
     };
-    
+
     const config = statusConfig[status] || statusConfig.pending;
     const Icon = config.icon;
-    
+
     return (
       <Badge variant={config.variant} className="gap-1">
         <Icon className="h-3 w-3" />
@@ -187,7 +179,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ password }) => {
                       <span className="font-mono text-sm font-medium">
                         #{order.orderId || order._id.slice(-8).toUpperCase()}
                       </span>
-                      {getStatusBadge(order.status)}
+                      {getStatusBadge(order.orderStatus || order.status)}
                     </div>
                     <p className="text-sm font-medium">{order.customer?.name}</p>
                     <p className="text-xs text-muted-foreground">{order.customer?.phone}</p>
@@ -199,7 +191,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ password }) => {
                         {order.items?.length || 0} items
                       </p>
                       <p className="font-bold text-lg">
-                        ₹{(order.total || order.grandTotal || 0).toLocaleString()}
+                        ₹{(order.totalAmount || order.total || order.grandTotal || 0).toLocaleString()}
                       </p>
                     </div>
                     <Button
@@ -254,7 +246,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ password }) => {
               Order #{selectedOrder?.orderId || selectedOrder?._id.slice(-8).toUpperCase()}
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedOrder && (
             <div className="space-y-6">
               {/* Customer Details */}
@@ -302,7 +294,7 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ password }) => {
                   </div>
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
                     <span>Total</span>
-                    <span>₹{(selectedOrder.total || selectedOrder.grandTotal || 0).toLocaleString()}</span>
+                    <span>₹{(selectedOrder.totalAmount || selectedOrder.total || selectedOrder.grandTotal || 0).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -311,15 +303,15 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({ password }) => {
               <div>
                 <h4 className="font-semibold mb-2">Update Status</h4>
                 <div className="flex flex-wrap gap-2">
-                  {['pending', 'confirmed', 'completed', 'cancelled'].map((status) => (
+                  {['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'].map((status) => (
                     <Button
                       key={status}
-                      variant={selectedOrder.status === status ? 'default' : 'outline'}
+                      variant={(selectedOrder.orderStatus || selectedOrder.status) === status ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => updateOrderStatus(selectedOrder._id, status)}
-                      disabled={selectedOrder.status === status}
+                      disabled={(selectedOrder.orderStatus || selectedOrder.status) === status}
                     >
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                      {status.replace(/_/g, ' ').charAt(0).toUpperCase() + status.replace(/_/g, ' ').slice(1)}
                     </Button>
                   ))}
                 </div>

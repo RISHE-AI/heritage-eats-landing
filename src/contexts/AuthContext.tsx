@@ -1,13 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { signupCustomer, loginCustomer, getProfile, updateProfile as apiUpdateProfile } from "@/services/api";
 
 export interface User {
   id: string;
+  _id?: string;
   name: string;
   phone: string;
   email?: string;
   address?: string;
+  totalOrders?: number;
+  totalSpent?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -15,8 +18,8 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (phone: string, name?: string) => Promise<boolean>;
-  signup: (name: string, phone: string) => Promise<boolean>;
+  login: (phone: string, password: string) => Promise<boolean>;
+  signup: (name: string, phone: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (updates: Partial<User>) => Promise<boolean>;
   savedCustomerDetails: CustomerDetails | null;
@@ -33,172 +36,161 @@ export interface CustomerDetails {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_STORAGE_KEY = "homemade_delights_user";
+const AUTH_TOKEN_KEY = "auth_token";
+const AUTH_USER_KEY = "homemade_delights_user";
 const CUSTOMER_DETAILS_KEY = "homemade_delights_customer_details";
-const USERS_STORAGE_KEY = "homemade_delights_users";
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [savedCustomerDetails, setSavedCustomerDetails] = useState<CustomerDetails | null>(null);
 
-  // Load user and saved details from localStorage on mount
+  // Load user from localStorage on mount and validate token
   useEffect(() => {
-    const savedUser = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    
-    const savedDetails = localStorage.getItem(CUSTOMER_DETAILS_KEY);
-    if (savedDetails) {
-      setSavedCustomerDetails(JSON.parse(savedDetails));
-    }
-    
-    setIsLoading(false);
-  }, []);
+    const init = async () => {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      const savedUser = localStorage.getItem(AUTH_USER_KEY);
 
-  // Persist user to localStorage
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-    }
-  }, [user]);
-
-  // Get all users from local storage (simulating database)
-  const getUsers = (): User[] => {
-    const usersData = localStorage.getItem(USERS_STORAGE_KEY);
-    return usersData ? JSON.parse(usersData) : [];
-  };
-
-  // Save users to local storage
-  const saveUsers = (users: User[]) => {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-  };
-
-  const signup = useCallback(async (name: string, phone: string): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      const users = getUsers();
-      
-      // Check if phone already exists
-      const existingUser = users.find(u => u.phone === phone);
-      if (existingUser) {
-        toast.error("Phone number already registered. Please login instead.");
-        setIsLoading(false);
-        return false;
-      }
-
-      // Create new user
-      const newUser: User = {
-        id: crypto.randomUUID(),
-        name,
-        phone,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      users.push(newUser);
-      saveUsers(users);
-      setUser(newUser);
-
-      // Save to MongoDB via edge function
-      try {
-        await supabase.functions.invoke('mongodb', {
-          body: {
-            action: 'insertOne',
-            collection: 'customers',
-            data: newUser
+      if (token && savedUser) {
+        try {
+          const result = await getProfile();
+          if (result.success && result.data) {
+            const userData: User = {
+              id: result.data._id,
+              _id: result.data._id,
+              name: result.data.name,
+              phone: result.data.phone,
+              email: result.data.email,
+              address: result.data.address,
+              totalOrders: result.data.totalOrders,
+              totalSpent: result.data.totalSpent,
+              createdAt: result.data.createdAt,
+              updatedAt: result.data.updatedAt
+            };
+            setUser(userData);
+            localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
+          } else {
+            // Token invalid, clear
+            localStorage.removeItem(AUTH_TOKEN_KEY);
+            localStorage.removeItem(AUTH_USER_KEY);
           }
-        });
-      } catch (error) {
-        console.log('MongoDB sync pending:', error);
+        } catch {
+          // Token expired or invalid, use cached data
+          if (savedUser) {
+            setUser(JSON.parse(savedUser));
+          }
+        }
       }
 
-      toast.success("Account created successfully! / கணக்கு வெற்றிகரமாக உருவாக்கப்பட்டது!");
+      const savedDetails = localStorage.getItem(CUSTOMER_DETAILS_KEY);
+      if (savedDetails) {
+        setSavedCustomerDetails(JSON.parse(savedDetails));
+      }
+
       setIsLoading(false);
-      return true;
-    } catch (error) {
-      console.error('Signup error:', error);
-      toast.error("Failed to create account");
-      setIsLoading(false);
-      return false;
-    }
+    };
+
+    init();
   }, []);
 
-  const login = useCallback(async (phone: string, name?: string): Promise<boolean> => {
+  const signup = useCallback(async (name: string, phone: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const users = getUsers();
-      const existingUser = users.find(u => u.phone === phone);
+      const result = await signupCustomer(name, phone, password);
 
-      if (existingUser) {
-        setUser(existingUser);
-        toast.success(`Welcome back, ${existingUser.name}! / மீண்டும் வருக!`);
+      if (result.success) {
+        localStorage.setItem(AUTH_TOKEN_KEY, result.token);
+        const userData: User = {
+          id: result.data._id,
+          _id: result.data._id,
+          name: result.data.name,
+          phone: result.data.phone,
+          email: result.data.email || '',
+          address: result.data.address || '',
+          totalOrders: result.data.totalOrders || 0,
+          totalSpent: result.data.totalSpent || 0,
+          createdAt: result.data.createdAt,
+          updatedAt: result.data.updatedAt
+        };
+        setUser(userData);
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
+        toast.success("Account created successfully! / கணக்கு வெற்றிகரமாக உருவாக்கப்பட்டது!");
         setIsLoading(false);
         return true;
-      } else if (name) {
-        // Auto-register if name is provided
-        return signup(name, phone);
-      } else {
-        toast.error("Account not found. Please sign up first.");
-        setIsLoading(false);
-        return false;
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      toast.error("Login failed");
+
+      setIsLoading(false);
+      return false;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create account");
       setIsLoading(false);
       return false;
     }
-  }, [signup]);
+  }, []);
+
+  const login = useCallback(async (phone: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const result = await loginCustomer(phone, password);
+
+      if (result.success) {
+        localStorage.setItem(AUTH_TOKEN_KEY, result.token);
+        const userData: User = {
+          id: result.data._id,
+          _id: result.data._id,
+          name: result.data.name,
+          phone: result.data.phone,
+          email: result.data.email || '',
+          address: result.data.address || '',
+          totalOrders: result.data.totalOrders || 0,
+          totalSpent: result.data.totalSpent || 0,
+          createdAt: result.data.createdAt,
+          updatedAt: result.data.updatedAt
+        };
+        setUser(userData);
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
+        toast.success(`Welcome back, ${userData.name}! / மீண்டும் வருக!`);
+        setIsLoading(false);
+        return true;
+      }
+
+      setIsLoading(false);
+      return false;
+    } catch (error: any) {
+      toast.error(error.message || "Login failed");
+      setIsLoading(false);
+      return false;
+    }
+  }, []);
 
   const logout = useCallback(() => {
     setUser(null);
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
     toast.info("Logged out successfully / வெற்றிகரமாக வெளியேறினீர்கள்");
   }, []);
 
-  const updateProfile = useCallback(async (updates: Partial<User>): Promise<boolean> => {
+  const updateUserProfile = useCallback(async (updates: Partial<User>): Promise<boolean> => {
     if (!user) return false;
 
     try {
-      const updatedUser: User = {
-        ...user,
-        ...updates,
-        updatedAt: new Date().toISOString()
-      };
+      const result = await apiUpdateProfile(updates);
 
-      // Update in local users list
-      const users = getUsers();
-      const userIndex = users.findIndex(u => u.id === user.id);
-      if (userIndex !== -1) {
-        users[userIndex] = updatedUser;
-        saveUsers(users);
+      if (result.success) {
+        const updatedUser: User = {
+          ...user,
+          ...result.data,
+          id: result.data._id,
+          _id: result.data._id
+        };
+        setUser(updatedUser);
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updatedUser));
+        toast.success("Profile updated successfully! / சுயவிவரம் புதுப்பிக்கப்பட்டது!");
+        return true;
       }
-
-      setUser(updatedUser);
-
-      // Sync to MongoDB
-      try {
-        await supabase.functions.invoke('mongodb', {
-          body: {
-            action: 'updateOne',
-            collection: 'customers',
-            filter: { id: user.id },
-            data: updates
-          }
-        });
-      } catch (error) {
-        console.log('MongoDB sync pending:', error);
-      }
-
-      toast.success("Profile updated successfully! / சுயவிவரம் புதுப்பிக்கப்பட்டது!");
-      return true;
-    } catch (error) {
-      console.error('Update profile error:', error);
-      toast.error("Failed to update profile");
+      return false;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update profile");
       return false;
     }
   }, [user]);
@@ -206,17 +198,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const saveCustomerDetails = useCallback((details: CustomerDetails) => {
     setSavedCustomerDetails(details);
     localStorage.setItem(CUSTOMER_DETAILS_KEY, JSON.stringify(details));
-    
-    // Also update user profile if logged in
+
     if (user) {
-      updateProfile({
+      updateUserProfile({
         name: details.name,
         phone: details.phone,
         email: details.email,
         address: details.address
       });
     }
-  }, [user, updateProfile]);
+  }, [user, updateUserProfile]);
 
   const clearSavedDetails = useCallback(() => {
     setSavedCustomerDetails(null);
@@ -231,7 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         signup,
         logout,
-        updateProfile,
+        updateProfile: updateUserProfile,
         savedCustomerDetails,
         saveCustomerDetails,
         clearSavedDetails

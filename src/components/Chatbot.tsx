@@ -3,7 +3,7 @@ import { MessageCircle, X, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { sendChatMessage } from "@/services/api";
 
 interface Message {
   id: string;
@@ -46,21 +46,12 @@ const Chatbot: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("chatbot", {
-        body: {
-          messages: [...messages, userMessage].map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        },
-      });
-
-      if (error) throw error;
+      const result = await sendChatMessage(userMessage.content);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response || "Sorry, I couldn't process that. Please try again.",
+        content: result.data?.reply || "Sorry, I couldn't process that. Please try again.",
       };
 
       setMessages((prev) => [...prev, assistantMessage]);

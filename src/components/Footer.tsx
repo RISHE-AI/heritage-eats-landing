@@ -27,15 +27,15 @@ const Footer: React.FC = () => {
             <div className="space-y-2.5 md:space-y-3">
               <div className="flex items-center gap-3 justify-center sm:justify-start">
                 <Phone className="h-4 w-4 md:h-5 md:w-5 text-gold shrink-0" />
-                <span className="text-sm md:text-base">+91 98765 43210</span>
+                <span className="text-sm md:text-base">+91 97511 88414</span>
               </div>
               <div className="flex items-center gap-3 justify-center sm:justify-start">
                 <Mail className="h-4 w-4 md:h-5 md:w-5 text-gold shrink-0" />
-                <span className="text-xs md:text-sm break-all">orders@homemadedelights.com</span>
+                <span className="text-xs md:text-sm break-all">contact.tdhms@gmail.com</span>
               </div>
               <div className="flex items-start gap-3 justify-center sm:justify-start">
                 <MapPin className="h-4 w-4 md:h-5 md:w-5 text-gold shrink-0 mt-0.5" />
-                <span className="text-sm md:text-base">Chennai, Tamil Nadu, India</span>
+                <span className="text-sm md:text-base">Vaiyappamalai, Namakkal-637410, Tamil Nadu, India</span>
               </div>
             </div>
           </div>

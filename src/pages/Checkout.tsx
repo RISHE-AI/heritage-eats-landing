@@ -6,20 +6,18 @@ import Header from "@/components/Header";
 import CustomerDetailsForm from "@/components/CustomerDetailsForm";
 import OrderConfirmationDialog from "@/components/OrderConfirmationDialog";
 import RazorpayPayment from "@/components/RazorpayPayment";
-import AnimatedCounter from "@/components/AnimatedCounter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, ArrowLeft, CheckCircle, Clock, AlertTriangle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { useConfetti } from "@/hooks/useConfetti";
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const { items, updateQuantity, updateWeight, removeFromCart, totalPrice, clearCart, deliveryCharge, grandTotal } = useCart();
+  const { items, updateQuantity, updateWeight, updateCustomMessage, removeFromCart, totalPrice, clearCart, deliveryCharge, grandTotal } = useCart();
   const { user } = useAuth();
   const { fireConfetti, fireStars } = useConfetti();
-  
+
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
@@ -27,7 +25,8 @@ const Checkout: React.FC = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [cartExpiryTime] = useState(() => new Date(Date.now() + 30 * 60 * 1000));
-  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "upi">("razorpay");
+  const [finalTotal, setFinalTotal] = useState(0);
+  const [confirmedItems, setConfirmedItems] = useState<any[]>([]);
 
   const handleDetailsSubmit = (details: CustomerDetails) => {
     setCustomerDetails(details);
@@ -40,84 +39,16 @@ const Checkout: React.FC = () => {
     setShowPayment(true);
   };
 
-  const handleRazorpaySuccess = async (paymentId: string, razorpayOrderId: string, signature: string) => {
-    setIsProcessing(true);
-    
-    try {
-      // Create order in backend
-      const orderData = {
-        customer: customerDetails,
-        items: items.map(item => ({
-          productId: item.product.id,
-          productName: item.product.nameEn,
-          productNameTa: item.product.nameTa,
-          weight: item.selectedWeight,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice
-        })),
-        subtotal: totalPrice,
-        deliveryCharge,
-        grandTotal,
-        paymentMethod: 'Razorpay',
-        paymentId,
-        razorpayOrderId,
-        signature
-      };
+  const handleRazorpaySuccess = (data: { orderId: string; razorpayPaymentId: string }) => {
+    setOrderId(data.orderId);
+    setPaymentConfirmed(true);
+    setFinalTotal(grandTotal);
+    setConfirmedItems(items);
+    clearCart();
 
-      const { data, error } = await supabase.functions.invoke('orders/create', {
-        body: orderData
-      });
-
-      if (error) {
-        console.error('Order creation error:', error);
-        const newOrderId = `ORD${Date.now().toString(36).toUpperCase()}`;
-        setOrderId(newOrderId);
-      } else if (data?.order?.id) {
-        setOrderId(data.order.id);
-      } else {
-        const newOrderId = `ORD${Date.now().toString(36).toUpperCase()}`;
-        setOrderId(newOrderId);
-      }
-
-      const finalOrderId = orderId || `ORD${Date.now().toString(36).toUpperCase()}`;
-      if (!orderId) setOrderId(finalOrderId);
-      
-      setPaymentConfirmed(true);
-      
-      // Celebrate with confetti!
-      fireConfetti();
-      setTimeout(() => fireStars(), 300);
-      
-      toast.success("Payment successful! / பணம் செலுத்தப்பட்டது!");
-
-      // Trigger WhatsApp notifications
-      try {
-        await supabase.functions.invoke('whatsapp-notify', {
-          body: {
-            type: 'order',
-            orderId: finalOrderId,
-            customer: customerDetails,
-            items: items.map(item => ({
-              name: item.product.nameEn,
-              weight: item.selectedWeight,
-              quantity: item.quantity,
-              price: item.unitPrice * item.quantity
-            })),
-            subtotal: totalPrice,
-            deliveryCharge,
-            grandTotal,
-            paymentId
-          }
-        });
-      } catch (notifyError) {
-        console.log('WhatsApp notification pending:', notifyError);
-      }
-    } catch (error) {
-      console.error('Payment error:', error);
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
+    fireConfetti();
+    setTimeout(() => fireStars(), 300);
+    toast.success("Payment successful! / பணம் செலுத்தப்பட்டது!");
   };
 
   const handleRazorpayError = (error: string) => {
@@ -125,118 +56,17 @@ const Checkout: React.FC = () => {
     setIsProcessing(false);
   };
 
-  const handleConfirmPayment = async () => {
-    if (isProcessing) return;
-    
-    setIsProcessing(true);
-
-    try {
-      const orderData = {
-        customer: customerDetails,
-        items: items.map(item => ({
-          productId: item.product.id,
-          productName: item.product.nameEn,
-          productNameTa: item.product.nameTa,
-          weight: item.selectedWeight,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice
-        })),
-        subtotal: totalPrice,
-        deliveryCharge,
-        grandTotal,
-        paymentMethod: 'UPI'
-      };
-
-      const { data, error } = await supabase.functions.invoke('orders/create', {
-        body: orderData
-      });
-
-      if (error) {
-        console.error('Order creation error:', error);
-        const newOrderId = `ORD${Date.now().toString(36).toUpperCase()}`;
-        setOrderId(newOrderId);
-      } else if (data?.order?.id) {
-        setOrderId(data.order.id);
-      } else {
-        const newOrderId = `ORD${Date.now().toString(36).toUpperCase()}`;
-        setOrderId(newOrderId);
-      }
-
-      const finalOrderId = orderId || `ORD${Date.now().toString(36).toUpperCase()}`;
-      if (!orderId) setOrderId(finalOrderId);
-      
-      setPaymentConfirmed(true);
-      
-      fireConfetti();
-      setTimeout(() => fireStars(), 300);
-      
-      toast.success("Payment confirmed! / பணம் உறுதி செய்யப்பட்டது!");
-
-      try {
-        await supabase.functions.invoke('whatsapp-notify', {
-          body: {
-            type: 'order',
-            orderId: finalOrderId,
-            customer: customerDetails,
-            items: items.map(item => ({
-              name: item.product.nameEn,
-              weight: item.selectedWeight,
-              quantity: item.quantity,
-              price: item.unitPrice * item.quantity
-            })),
-            subtotal: totalPrice,
-            deliveryCharge,
-            grandTotal
-          }
-        });
-      } catch (notifyError) {
-        console.log('WhatsApp notification pending:', notifyError);
-      }
-
-      try {
-        await supabase.functions.invoke('whatsapp-notify', {
-          body: {
-            type: 'receipt',
-            orderId: finalOrderId,
-            customer: customerDetails,
-            items: items.map(item => ({
-              name: item.product.nameEn,
-              weight: item.selectedWeight,
-              quantity: item.quantity,
-              price: item.unitPrice * item.quantity
-            })),
-            subtotal: totalPrice,
-            deliveryCharge,
-            grandTotal,
-            paymentMethod: 'UPI',
-            paymentStatus: 'Confirmed',
-            paidAt: new Date().toISOString()
-          }
-        });
-      } catch (receiptError) {
-        console.log('Receipt notification pending:', receiptError);
-      }
-
-    } catch (error) {
-      console.error('Payment error:', error);
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const handleViewInvoice = () => {
     // Store order in localStorage for invoice page
     localStorage.setItem("currentOrder", JSON.stringify({
       id: orderId,
       customer: customerDetails,
-      items,
-      subtotal: totalPrice,
+      items: confirmedItems,
+      subtotal: confirmedItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0),
       deliveryCharge,
-      total: grandTotal,
+      total: finalTotal,
       createdAt: new Date().toISOString(),
     }));
-    clearCart();
     navigate("/invoice");
   };
 
@@ -320,7 +150,7 @@ const Checkout: React.FC = () => {
               </p>
               <p className="text-muted-foreground">
                 Total Paid: <span className="font-bold text-2xl text-primary">
-                  <AnimatedCounter value={grandTotal} prefix="₹" />
+                  ₹{finalTotal}
                 </span>
               </p>
               {customerDetails && (
@@ -359,7 +189,7 @@ const Checkout: React.FC = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Shop / கடைக்கு திரும்பு
           </Button>
-          
+
           {/* Cart Expiry Indicator */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-full">
             <Clock className="h-4 w-4" />
@@ -383,49 +213,39 @@ const Checkout: React.FC = () => {
                 {items.map(item => (
                   <div
                     key={`${item.product.id}-${item.selectedWeight}`}
-                    className="flex items-center gap-4 p-3 rounded-lg bg-secondary/30"
+                    className="p-3 rounded-lg bg-secondary/30"
                   >
-                    <img
-                      src={item.product.images[0]}
-                      alt={item.product.nameEn}
-                      className="h-16 w-16 rounded-md object-cover"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium truncate">{item.product.nameEn}</h4>
-                      <p className="text-sm text-muted-foreground tamil-text truncate">
-                        {item.product.nameTa}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Weight: {item.selectedWeight}
-                      </p>
-                      <p className="text-primary font-semibold">₹{item.unitPrice}</p>
+                    <div className="flex items-center gap-4">
+                      <img
+                        src={item.product.images[0]}
+                        alt={item.product.nameEn}
+                        className="h-16 w-16 rounded-md object-cover"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium truncate">{item.product.nameEn}</h4>
+                        <p className="text-sm text-muted-foreground tamil-text truncate">
+                          {item.product.nameTa}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Weight: {item.selectedWeight}
+                        </p>
+                        <p className="text-primary font-semibold">₹{item.unitPrice}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(item.product.id, item.selectedWeight, item.quantity - 1)}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-8 text-center">{item.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(item.product.id, item.selectedWeight, item.quantity + 1)}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
-                        onClick={() => removeFromCart(item.product.id, item.selectedWeight)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    {/* Custom Message Input */}
+                    <div className="mt-3 w-full">
+                      <label className="text-xs text-muted-foreground mb-1 block">
+                        Custom Message (Optional) / தனிப்பயன் செய்தி (விருப்பினால்)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="eg: Less sugar Etc  //
+                                     எ.கா: குறைந்த சர்க்கரை போன்றவை."
+                        className="w-full text-sm p-2 rounded-md border border-input bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                        value={item.customMessage || ''}
+                        onChange={(e) => updateCustomMessage(item.product.id, item.selectedWeight, e.target.value)}
+                        maxLength={100}
+                      />
                     </div>
                   </div>
                 ))}
@@ -474,123 +294,35 @@ const Checkout: React.FC = () => {
           {/* Customer Details or Payment Section */}
           <div>
             {!showPayment ? (
-              <CustomerDetailsForm 
+              <CustomerDetailsForm
                 onDetailsSubmit={handleDetailsSubmit}
                 isSubmitting={isProcessing}
               />
             ) : (
               <div className="space-y-4">
-                {/* Payment Method Toggle */}
-                <Card className="shadow-card">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg font-medium">
-                      Select Payment Method
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button
-                        variant={paymentMethod === "razorpay" ? "default" : "outline"}
-                        className="h-auto py-4 flex-col gap-1"
-                        onClick={() => setPaymentMethod("razorpay")}
-                      >
-                        <span className="text-lg">💳</span>
-                        <span>Razorpay</span>
-                        <span className="text-xs opacity-70">Cards, UPI, Wallets</span>
-                      </Button>
-                      <Button
-                        variant={paymentMethod === "upi" ? "default" : "outline"}
-                        className="h-auto py-4 flex-col gap-1"
-                        onClick={() => setPaymentMethod("upi")}
-                      >
-                        <span className="text-lg">📱</span>
-                        <span>Manual UPI</span>
-                        <span className="text-xs opacity-70">Scan & Pay</span>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {paymentMethod === "razorpay" ? (
-                  <RazorpayPayment
-                    amount={grandTotal}
-                    orderId={orderId || `ORD${Date.now().toString(36).toUpperCase()}`}
-                    customerName={customerDetails?.name || ""}
-                    customerPhone={customerDetails?.phone || ""}
-                    onSuccess={handleRazorpaySuccess}
-                    onError={handleRazorpayError}
-                    disabled={isProcessing}
-                  />
-                ) : (
-                  <Card className="shadow-card">
-                    <CardHeader>
-                      <CardTitle className="font-serif">
-                        UPI Payment
-                        <span className="block text-lg font-normal text-muted-foreground tamil-text">
-                          UPI பணம் செலுத்துதல்
-                        </span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="text-center">
-                        <p className="text-muted-foreground mb-4">
-                          Scan the QR code or use the UPI ID below to make payment
-                        </p>
-                        <p className="text-sm text-muted-foreground tamil-text mb-6">
-                          QR குறியீட்டை ஸ்கேன் செய்யவும் அல்லது கீழே உள்ள UPI ID பயன்படுத்தவும்
-                        </p>
-
-                        {/* Placeholder QR Code */}
-                        <div className="mx-auto w-48 h-48 bg-secondary rounded-lg flex items-center justify-center mb-4">
-                          <div className="text-center text-muted-foreground">
-                            <div className="text-4xl mb-2">📱</div>
-                            <p className="text-sm">QR Code</p>
-                            <p className="text-xs">(Placeholder)</p>
-                          </div>
-                        </div>
-
-                        {/* UPI ID */}
-                        <div className="bg-secondary/50 rounded-lg p-4">
-                          <p className="text-sm text-muted-foreground mb-1">UPI ID:</p>
-                          <p className="text-lg font-mono font-semibold">homemade@upi</p>
-                          <p className="text-xs text-muted-foreground mt-1">(Placeholder UPI ID)</p>
-                        </div>
-
-                        {/* Amount */}
-                        <div className="mt-4 p-4 bg-primary/10 rounded-lg">
-                          <p className="text-sm text-muted-foreground">Amount to Pay:</p>
-                          <p className="text-3xl font-bold text-primary">
-                            <AnimatedCounter value={grandTotal} prefix="₹" />
-                          </p>
-                        </div>
-                      </div>
-
-                      <Button
-                        size="lg"
-                        className="w-full"
-                        onClick={handleConfirmPayment}
-                        disabled={isProcessing}
-                      >
-                        {isProcessing ? (
-                          <span className="animate-pulse">Processing...</span>
-                        ) : (
-                          <>
-                            Confirm Payment
-                            <span className="ml-2 text-sm tamil-text">பணம் உறுதி செய்</span>
-                          </>
-                        )}
-                      </Button>
-
-                      <p className="text-xs text-center text-muted-foreground">
-                        Click "Confirm Payment" after completing UPI payment
-                        <br />
-                        <span className="tamil-text">
-                          UPI பணம் செலுத்திய பின் "பணம் உறுதி செய்" பொத்தானை கிளிக் செய்யவும்
-                        </span>
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
+                <RazorpayPayment
+                  amount={grandTotal}
+                  customerName={customerDetails?.name || ""}
+                  customerPhone={customerDetails?.phone || ""}
+                  customerEmail={customerDetails?.email}
+                  orderData={{
+                    customerId: user?._id || user?.id,
+                    items: items.map(item => ({
+                      productId: item.product.id,
+                      name: item.product.nameEn,
+                      weight: item.selectedWeight,
+                      quantity: item.quantity,
+                      price: item.unitPrice * item.quantity,
+                      customMessage: item.customMessage || ''
+                    })),
+                    deliveryCharge,
+                    totalAmount: grandTotal,
+                    grandTotal
+                  }}
+                  onSuccess={handleRazorpaySuccess}
+                  onError={handleRazorpayError}
+                  disabled={isProcessing}
+                />
 
                 <Button
                   variant="outline"
@@ -604,25 +336,27 @@ const Checkout: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
-      </div>
+        </div >
+      </div >
 
       {/* Order Confirmation Dialog */}
-      {customerDetails && (
-        <OrderConfirmationDialog
-          open={showConfirmDialog}
-          onOpenChange={setShowConfirmDialog}
-          onConfirm={handleOrderConfirm}
-          customerDetails={customerDetails}
-          items={items}
-          grandTotal={grandTotal}
-          deliveryCharge={deliveryCharge}
-          isProcessing={isProcessing}
-          onUpdateQuantity={updateQuantity}
-          onUpdateWeight={updateWeight}
-        />
-      )}
-    </div>
+      {
+        customerDetails && (
+          <OrderConfirmationDialog
+            open={showConfirmDialog}
+            onOpenChange={setShowConfirmDialog}
+            onConfirm={handleOrderConfirm}
+            customerDetails={customerDetails}
+            items={items}
+            grandTotal={grandTotal}
+            deliveryCharge={deliveryCharge}
+            isProcessing={isProcessing}
+            onUpdateQuantity={updateQuantity}
+            onUpdateWeight={updateWeight}
+          />
+        )
+      }
+    </div >
   );
 };
 

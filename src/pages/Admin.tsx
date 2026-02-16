@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { adminLogin } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { 
-  LayoutDashboard, Package, ShoppingCart, Users, Star, 
-  LogOut, Lock, Eye, EyeOff, TrendingUp, DollarSign 
+import {
+  LayoutDashboard, Package, ShoppingCart, Users, Star,
+  LogOut, Lock, Eye, EyeOff, TrendingUp, DollarSign
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AdminDashboard from '@/components/admin/AdminDashboard';
@@ -26,12 +26,9 @@ const Admin: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if already logged in
-    const token = sessionStorage.getItem('adminToken');
-    const storedPassword = sessionStorage.getItem('adminPassword');
-    if (token && storedPassword) {
+    const token = localStorage.getItem('admin_token');
+    if (token) {
       setAdminToken(token);
-      setPassword(storedPassword);
       setIsAuthenticated(true);
     }
   }, []);
@@ -41,24 +38,19 @@ const Admin: React.FC = () => {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('admin', {
-        body: { action: 'login', password }
-      });
+      const result = await adminLogin(password);
 
-      if (error) throw error;
-      
-      if (data?.success) {
+      if (result.success) {
         setIsAuthenticated(true);
-        setAdminToken(data.token);
-        sessionStorage.setItem('adminToken', data.token);
-        sessionStorage.setItem('adminPassword', password);
+        setAdminToken(result.token);
+        localStorage.setItem('admin_token', result.token);
         toast.success('Welcome to Admin Dashboard!');
       } else {
-        toast.error(data?.error || 'Invalid password');
+        toast.error('Invalid password');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      toast.error('Login failed. Please try again.');
+      toast.error(error.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -68,8 +60,7 @@ const Admin: React.FC = () => {
     setIsAuthenticated(false);
     setAdminToken('');
     setPassword('');
-    sessionStorage.removeItem('adminToken');
-    sessionStorage.removeItem('adminPassword');
+    localStorage.removeItem('admin_token');
     toast.success('Logged out successfully');
   };
 
@@ -106,10 +97,10 @@ const Admin: React.FC = () => {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Logging in...' : 'Login'}
               </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full" 
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
                 onClick={() => navigate('/')}
               >
                 Back to Home
@@ -174,23 +165,23 @@ const Admin: React.FC = () => {
           </TabsList>
 
           <TabsContent value="dashboard">
-            <AdminDashboard password={password} />
+            <AdminDashboard password={password} onLogout={handleLogout} />
           </TabsContent>
 
           <TabsContent value="orders">
-            <AdminOrders password={password} />
+            <AdminOrders password={password} onLogout={handleLogout} />
           </TabsContent>
 
           <TabsContent value="products">
-            <AdminProducts password={password} />
+            <AdminProducts password={password} onLogout={handleLogout} />
           </TabsContent>
 
           <TabsContent value="customers">
-            <AdminCustomers password={password} />
+            <AdminCustomers password={password} onLogout={handleLogout} />
           </TabsContent>
 
           <TabsContent value="reviews">
-            <AdminReviews password={password} />
+            <AdminReviews password={password} onLogout={handleLogout} />
           </TabsContent>
         </Tabs>
       </main>

@@ -7,21 +7,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Phone, ArrowLeft, Loader2 } from "lucide-react";
+import { User, Phone, ArrowLeft, Loader2, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 const Auth: React.FC = () => {
   const navigate = useNavigate();
   const { user, login, signup, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
-  
+
   // Login form state
   const [loginPhone, setLoginPhone] = useState("");
-  
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+
   // Signup form state
   const [signupName, setSignupName] = useState("");
   const [signupPhone, setSignupPhone] = useState("");
-  
+  const [signupPassword, setSignupPassword] = useState("");
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
 
   // Redirect if already logged in
@@ -38,16 +42,21 @@ const Auth: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validatePhone(loginPhone)) {
       toast.error("Please enter a valid 10-digit Indian phone number");
       return;
     }
-    
+
+    if (!loginPassword) {
+      toast.error("Please enter your password");
+      return;
+    }
+
     setSubmitting(true);
-    const success = await login(loginPhone);
+    const success = await login(loginPhone, loginPassword);
     setSubmitting(false);
-    
+
     if (success) {
       navigate("/profile");
     }
@@ -55,26 +64,31 @@ const Auth: React.FC = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!signupName.trim()) {
       toast.error("Please enter your name");
       return;
     }
-    
+
     if (signupName.trim().length < 2) {
       toast.error("Name must be at least 2 characters");
       return;
     }
-    
+
     if (!validatePhone(signupPhone)) {
       toast.error("Please enter a valid 10-digit Indian phone number");
       return;
     }
-    
+
+    if (!signupPassword || signupPassword.length < 4) {
+      toast.error("Password must be at least 4 characters");
+      return;
+    }
+
     setSubmitting(true);
-    const success = await signup(signupName.trim(), signupPhone);
+    const success = await signup(signupName.trim(), signupPhone, signupPassword);
     setSubmitting(false);
-    
+
     if (success) {
       navigate("/profile");
     }
@@ -145,9 +159,33 @@ const Auth: React.FC = () => {
                       </p>
                     </div>
 
-                    <Button 
-                      type="submit" 
-                      className="w-full" 
+                    <div className="space-y-2">
+                      <Label htmlFor="login-password" className="flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        Password / கடவுச்சொல்
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="login-password"
+                          type={showLoginPassword ? "text" : "password"}
+                          placeholder="Enter your password"
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowLoginPassword(!showLoginPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full"
                       size="lg"
                       disabled={submitting}
                     >
@@ -213,9 +251,37 @@ const Auth: React.FC = () => {
                       </p>
                     </div>
 
-                    <Button 
-                      type="submit" 
-                      className="w-full" 
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password" className="flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        Password / கடவுச்சொல் *
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="signup-password"
+                          type={showSignupPassword ? "text" : "password"}
+                          placeholder="Create a password (min 4 characters)"
+                          value={signupPassword}
+                          onChange={(e) => setSignupPassword(e.target.value)}
+                          minLength={4}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowSignupPassword(!showSignupPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Minimum 4 characters
+                      </p>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full"
                       size="lg"
                       disabled={submitting}
                     >

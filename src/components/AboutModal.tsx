@@ -24,7 +24,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ trigger }) => {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-[75vw] max-w-[75vw] max-h-[75vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-serif text-2xl text-center">
             About Homemade Delights

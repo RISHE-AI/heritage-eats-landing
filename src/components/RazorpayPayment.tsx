@@ -1,83 +1,106 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreditCard, Shield, Loader2, CheckCircle, Smartphone, Wallet } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { CreditCard, Shield, Loader2 } from "lucide-react";
+import { createRazorpayOrder, verifyRazorpayPayment } from "@/services/api";
 
 interface RazorpayPaymentProps {
   amount: number;
-  orderId: string;
   customerName: string;
   customerEmail?: string;
   customerPhone: string;
-  onSuccess: (paymentId: string, orderId: string, signature: string) => void;
+  orderData: any;
+  onSuccess: (data: { orderId: string; razorpayPaymentId: string }) => void;
   onError: (error: string) => void;
   disabled?: boolean;
 }
 
-// Placeholder configuration - replace with actual keys
-const RAZORPAY_KEY_ID = "rzp_test_placeholder";
-
 const RazorpayPayment: React.FC<RazorpayPaymentProps> = ({
   amount,
-  orderId,
   customerName,
   customerEmail,
   customerPhone,
+  orderData,
   onSuccess,
   onError,
   disabled = false
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<"upi" | "card" | "wallet">("upi");
 
-  const paymentMethods = [
-    { id: "upi" as const, label: "UPI", icon: Smartphone, description: "Google Pay, PhonePe, Paytm" },
-    { id: "card" as const, label: "Card", icon: CreditCard, description: "Credit/Debit Card" },
-    { id: "wallet" as const, label: "Wallet", icon: Wallet, description: "Paytm, Mobikwik" },
-  ];
-
-  const handlePayment = async () => {
-    setIsLoading(true);
-    
-    try {
-      // Check if Razorpay is loaded
-      if (typeof (window as any).Razorpay === "undefined") {
-        // For now, simulate a successful payment since we're using placeholder
-        console.log("Razorpay SDK not loaded - simulating payment");
-        
-        // Simulate payment delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Generate mock payment details
-        const mockPaymentId = `pay_${Date.now().toString(36)}`;
-        const mockSignature = `sig_${Date.now().toString(36)}`;
-        
-        onSuccess(mockPaymentId, orderId, mockSignature);
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if ((window as any).Razorpay) {
+        resolve(true);
         return;
       }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
 
+  const handlePayment = async () => {
+    if (isLoading || disabled) return;
+    setIsLoading(true);
+
+    try {
+      // Step 1: Create Razorpay order on backend
+      const orderResult = await createRazorpayOrder(amount);
+
+      if (!orderResult.success || !orderResult.data) {
+        throw new Error(orderResult.message || "Failed to create payment order");
+      }
+
+      const { orderId: razorpayOrderId, key } = orderResult.data;
+
+      // Step 2: Load Razorpay checkout script
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        throw new Error("Failed to load payment gateway. Please check your internet connection.");
+      }
+
+      // Step 3: Open Razorpay checkout popup
       const options = {
-        key: RAZORPAY_KEY_ID,
-        amount: amount * 100, // Razorpay expects amount in paise
+        key,
+        amount: Math.round(amount * 100),
         currency: "INR",
-        name: "Homemade Delights",
-        description: `Order #${orderId}`,
-        order_id: orderId,
+        name: "Heritage Eats",
+        description: "Order Payment",
+        order_id: razorpayOrderId,
         prefill: {
           name: customerName,
           email: customerEmail || "",
           contact: customerPhone,
         },
         theme: {
-          color: "#8B2323", // Primary maroon color
+          color: "#8B2323",
         },
-        handler: function (response: any) {
-          onSuccess(
-            response.razorpay_payment_id,
-            response.razorpay_order_id,
-            response.razorpay_signature
-          );
+        handler: async function (response: any) {
+          // Step 4: Verify payment on backend
+          try {
+            const verifyResult = await verifyRazorpayPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              orderData,
+            });
+
+            if (verifyResult.success) {
+              onSuccess({
+                orderId: verifyResult.data.orderId,
+                razorpayPaymentId: response.razorpay_payment_id,
+              });
+            } else {
+              onError(verifyResult.message || "Payment verification failed");
+            }
+          } catch (verifyError: any) {
+            console.error("Verification error:", verifyError);
+            onError(verifyError.message || "Payment verification failed. Please contact support.");
+          } finally {
+            setIsLoading(false);
+          }
         },
         modal: {
           ondismiss: function () {
@@ -88,13 +111,13 @@ const RazorpayPayment: React.FC<RazorpayPaymentProps> = ({
 
       const razorpay = new (window as any).Razorpay(options);
       razorpay.on("payment.failed", function (response: any) {
-        onError(response.error.description);
+        onError(response.error.description || "Payment failed");
         setIsLoading(false);
       });
       razorpay.open();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Payment error:", error);
-      onError("Payment initialization failed. Please try again.");
+      onError(error.message || "Payment initialization failed. Please try again.");
       setIsLoading(false);
     }
   };
@@ -117,57 +140,15 @@ const RazorpayPayment: React.FC<RazorpayPaymentProps> = ({
           <p className="text-4xl font-bold text-primary mt-1">₹{amount}</p>
         </div>
 
-        {/* Payment Method Selection */}
-        <div className="space-y-3">
-          <p className="text-sm font-medium">Select Payment Method</p>
-          <div className="grid grid-cols-3 gap-2">
-            {paymentMethods.map((method) => (
-              <button
-                key={method.id}
-                onClick={() => setSelectedMethod(method.id)}
-                className={cn(
-                  "p-3 rounded-lg border-2 transition-all duration-200 text-center",
-                  selectedMethod === method.id
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                )}
-              >
-                <method.icon className={cn(
-                  "h-6 w-6 mx-auto mb-1",
-                  selectedMethod === method.id ? "text-primary" : "text-muted-foreground"
-                )} />
-                <span className="text-xs font-medium block">{method.label}</span>
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-center text-muted-foreground">
-            {paymentMethods.find(m => m.id === selectedMethod)?.description}
+        {/* Payment Info */}
+        <div className="text-center space-y-2">
+          <p className="text-sm text-muted-foreground">
+            You will be redirected to Razorpay's secure payment gateway
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Supports UPI, Cards, Net Banking & Wallets
           </p>
         </div>
-
-        {/* UPI Quick Pay Options */}
-        {selectedMethod === "upi" && (
-          <div className="flex justify-center gap-4 p-4 bg-secondary/30 rounded-lg animate-fade-in">
-            <div className="text-center">
-              <div className="h-12 w-12 mx-auto mb-1 rounded-full bg-background flex items-center justify-center shadow-sm">
-                <span className="text-lg">📱</span>
-              </div>
-              <span className="text-xs text-muted-foreground">GPay</span>
-            </div>
-            <div className="text-center">
-              <div className="h-12 w-12 mx-auto mb-1 rounded-full bg-background flex items-center justify-center shadow-sm">
-                <span className="text-lg">💜</span>
-              </div>
-              <span className="text-xs text-muted-foreground">PhonePe</span>
-            </div>
-            <div className="text-center">
-              <div className="h-12 w-12 mx-auto mb-1 rounded-full bg-background flex items-center justify-center shadow-sm">
-                <span className="text-lg">🔵</span>
-              </div>
-              <span className="text-xs text-muted-foreground">Paytm</span>
-            </div>
-          </div>
-        )}
 
         {/* Pay Button */}
         <Button
@@ -184,7 +165,7 @@ const RazorpayPayment: React.FC<RazorpayPaymentProps> = ({
           ) : (
             <>
               <CreditCard className="h-5 w-5" />
-              Pay ₹{amount}
+              Pay ₹{amount} with Razorpay
               <span className="text-sm tamil-text font-normal">பணம் செலுத்து</span>
             </>
           )}
@@ -196,11 +177,11 @@ const RazorpayPayment: React.FC<RazorpayPaymentProps> = ({
           <span>256-bit SSL Encrypted | 100% Secure Payment</span>
         </div>
 
-        {/* Payment Partner Logos (Placeholder) */}
-        <div className="flex justify-center items-center gap-4 pt-2 opacity-50">
-          <div className="h-6 w-16 bg-muted rounded flex items-center justify-center text-xs">Razorpay</div>
-          <div className="h-6 w-12 bg-muted rounded flex items-center justify-center text-xs">UPI</div>
-          <div className="h-6 w-12 bg-muted rounded flex items-center justify-center text-xs">VISA</div>
+        {/* Payment Partner Logo */}
+        <div className="flex justify-center items-center gap-4 pt-2 opacity-60">
+          <div className="h-6 w-20 bg-muted rounded flex items-center justify-center text-xs font-medium">
+            Razorpay
+          </div>
         </div>
       </CardContent>
     </Card>

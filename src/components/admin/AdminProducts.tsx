@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchProducts as apiFetchProducts, createProduct, updateProduct } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,19 +12,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Plus, Edit, Package, Search, RefreshCw, 
-  Save, X, Trash2, Languages
+import {
+  Plus, Edit, Package, Search, RefreshCw,
+  Save, X, Trash2, Languages, Calculator
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { products as staticProducts } from '@/data/products';
-import { Product } from '@/types/product';
+import { Product, transformProduct } from '@/types/product';
 
 interface AdminProductsProps {
   password: string;
+  onLogout: () => void;
 }
 
-const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
+const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,26 +39,17 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('admin', {
-        body: { action: 'getProducts', password }
-      });
-
-      if (error) throw error;
-      
-      const dbProducts = data?.products || [];
-      const mergedProducts = [...staticProducts];
-      
-      dbProducts.forEach((dbProduct: any) => {
-        const index = mergedProducts.findIndex(p => p.id === dbProduct.id);
-        if (index !== -1) {
-          mergedProducts[index] = { ...mergedProducts[index], available: dbProduct.available };
-        }
-      });
-      
-      setProducts(mergedProducts);
-    } catch (error) {
+      const result = await apiFetchProducts();
+      if (result.success && result.data) {
+        const transformed = result.data.map((p: any) => transformProduct(p));
+        setProducts(transformed);
+      }
+    } catch (error: any) {
       console.error('Error fetching products:', error);
-      setProducts(staticProducts);
+      if (error.message && (error.message.includes('Not authorized') || error.message.includes('token failed'))) {
+        onLogout();
+      }
+      toast.error('Failed to load products');
     } finally {
       setLoading(false);
     }
@@ -66,21 +57,12 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
 
   const toggleAvailability = async (product: Product) => {
     try {
-      const { error } = await supabase.functions.invoke('admin', {
-        body: { 
-          action: 'setProductAvailability', 
-          password,
-          productId: product.id,
-          available: !product.available
-        }
-      });
+      await updateProduct(product.id, { available: !product.available });
 
-      if (error) throw error;
-      
-      setProducts(prev => prev.map(p => 
+      setProducts(prev => prev.map(p =>
         p.id === product.id ? { ...p, available: !p.available } : p
       ));
-      
+
       toast.success(`${product.nameEn} is now ${!product.available ? 'available' : 'unavailable'}`);
     } catch (error) {
       console.error('Error updating availability:', error);
@@ -90,24 +72,42 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
 
   const saveProduct = async () => {
     if (!editingProduct) return;
-    
-    try {
-      const { error } = await supabase.functions.invoke('admin', {
-        body: { 
-          action: 'saveProduct', 
-          password,
-          product: editingProduct
-        }
-      });
 
-      if (error) throw error;
-      
+    try {
+      const productData = {
+        id: editingProduct.id,
+        name_en: editingProduct.nameEn,
+        name_ta: editingProduct.nameTa,
+        category: editingProduct.category,
+        basePrice: editingProduct.price,
+        description_en: editingProduct.descriptionEn,
+        description_ta: editingProduct.descriptionTa,
+        images: editingProduct.images,
+        ingredients_en: editingProduct.ingredientsEn,
+        ingredients_ta: editingProduct.ingredientsTa,
+        benefits_en: editingProduct.benefitsEn,
+        benefits_ta: editingProduct.benefitsTa,
+        storage_en: editingProduct.storageEn,
+        storage_ta: editingProduct.storageTa,
+        shelfLife: editingProduct.shelfLife,
+        available: editingProduct.available,
+        weightOptions: editingProduct.weightOptions,
+        badge: editingProduct.badge || null
+      };
+
+      if (editingProduct._id) {
+        await updateProduct(editingProduct._id, productData);
+      } else {
+        await createProduct(productData);
+      }
+
       toast.success('Product saved successfully');
       setShowEditDialog(false);
       fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving product:', error);
-      toast.error('Failed to save product');
+      const msg = error?.message || error?.data?.message || 'Failed to save product';
+      toast.error(msg);
     }
   };
 
@@ -157,7 +157,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.nameEn.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.nameTa.includes(searchQuery);
+      product.nameTa.includes(searchQuery);
     const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
@@ -252,9 +252,9 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
               <div className="flex gap-3">
                 <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
                   {product.images?.[0] && product.images[0] !== '/placeholder.svg' ? (
-                    <img 
-                      src={product.images[0]} 
-                      alt={product.nameEn} 
+                    <img
+                      src={product.images[0]}
+                      alt={product.nameEn}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -283,8 +283,8 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
                         {product.available !== false ? 'On' : 'Off'}
                       </span>
                     </div>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       className="h-8 px-3"
                       onClick={() => {
@@ -326,7 +326,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
               {editingProduct?.id ? 'Edit Product' : 'Add New Product'}
             </DialogTitle>
           </DialogHeader>
-          
+
           {editingProduct && (
             <ScrollArea className="max-h-[calc(90vh-120px)]">
               <div className="p-4 space-y-4">
@@ -357,12 +357,12 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <Label className="text-xs">Category</Label>
-                        <Select 
-                          value={editingProduct.category} 
+                        <Select
+                          value={editingProduct.category}
                           onValueChange={(value: any) => setEditingProduct({ ...editingProduct, category: value })}
                         >
                           <SelectTrigger className="h-9">
@@ -429,15 +429,26 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* Badge Dropdown */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <Label className="text-xs">Shelf Life</Label>
-                        <Input
-                          value={editingProduct.shelfLife}
-                          onChange={(e) => setEditingProduct({ ...editingProduct, shelfLife: e.target.value })}
-                          placeholder="e.g., 15-20 days"
-                          className="h-9"
-                        />
+                        <Label className="text-xs">Product Badge</Label>
+                        <Select
+                          value={editingProduct.badge || 'none'}
+                          onValueChange={(value: string) => setEditingProduct({ ...editingProduct, badge: value === 'none' ? null : value })}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            <SelectItem value="new">🆕 New</SelectItem>
+                            <SelectItem value="hot">🔥 Hot</SelectItem>
+                            <SelectItem value="top-seller">⭐ Top Seller</SelectItem>
+                            <SelectItem value="limited">⏳ Limited</SelectItem>
+                            <SelectItem value="custom">✨ Custom</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="flex items-end">
                         <div className="flex items-center gap-2">
@@ -449,6 +460,109 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
                         </div>
                       </div>
                     </div>
+
+                    {/* Weight Auto-Calculator */}
+                    <div className="border rounded-lg p-3 space-y-3 bg-secondary/20">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-semibold flex items-center gap-1.5">
+                          <Calculator className="h-4 w-4" />
+                          Weight Options
+                        </Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => {
+                            const basePrice = editingProduct.price;
+                            if (!basePrice || basePrice <= 0) {
+                              toast.error('Enter a valid base price first');
+                              return;
+                            }
+                            const pricePerGram = basePrice / 1000;
+                            const autoWeights = [
+                              { weight: '1', unit: 'kg', price: Math.round(basePrice) },
+                              { weight: '500', unit: 'g', price: Math.round(pricePerGram * 500) },
+                              { weight: '250', unit: 'g', price: Math.round(pricePerGram * 250) },
+                              { weight: '100', unit: 'g', price: Math.round(pricePerGram * 100) },
+                            ];
+                            setEditingProduct({ ...editingProduct, weightOptions: autoWeights });
+                            toast.success('Weight options auto-generated from 1kg price');
+                          }}
+                        >
+                          Auto-Generate from Base Price
+                        </Button>
+                      </div>
+
+                      {/* Weight Rows */}
+                      {(editingProduct.weightOptions || []).map((wo, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <Input
+                            className="h-8 w-20 text-xs"
+                            value={wo.weight}
+                            onChange={(e) => {
+                              const updated = [...(editingProduct.weightOptions || [])];
+                              updated[idx] = { ...updated[idx], weight: e.target.value };
+                              setEditingProduct({ ...editingProduct, weightOptions: updated });
+                            }}
+                            placeholder="250"
+                          />
+                          <Select
+                            value={wo.unit}
+                            onValueChange={(val: string) => {
+                              const updated = [...(editingProduct.weightOptions || [])];
+                              updated[idx] = { ...updated[idx], unit: val };
+                              setEditingProduct({ ...editingProduct, weightOptions: updated });
+                            }}
+                          >
+                            <SelectTrigger className="h-8 w-16 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="g">g</SelectItem>
+                              <SelectItem value="kg">kg</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            className="h-8 w-24 text-xs"
+                            type="number"
+                            value={wo.price}
+                            onChange={(e) => {
+                              const updated = [...(editingProduct.weightOptions || [])];
+                              updated[idx] = { ...updated[idx], price: Number(e.target.value) };
+                              setEditingProduct({ ...editingProduct, weightOptions: updated });
+                            }}
+                            placeholder="₹"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => {
+                              const updated = (editingProduct.weightOptions || []).filter((_, i) => i !== idx);
+                              setEditingProduct({ ...editingProduct, weightOptions: updated });
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-8 text-xs"
+                        onClick={() => {
+                          const updated = [...(editingProduct.weightOptions || []), { weight: '', unit: 'g', price: 0 }];
+                          setEditingProduct({ ...editingProduct, weightOptions: updated });
+                        }}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add Weight
+                      </Button>
+                    </div>
                   </TabsContent>
 
                   {/* Ingredients Tab */}
@@ -458,9 +572,9 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label className="text-sm font-semibold">English</Label>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
+                          <Button
+                            type="button"
+                            variant="outline"
                             size="sm"
                             onClick={() => addIngredient('En')}
                             className="h-7 text-xs"
@@ -497,9 +611,9 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label className="text-sm font-semibold">Tamil</Label>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
+                          <Button
+                            type="button"
+                            variant="outline"
                             size="sm"
                             onClick={() => addIngredient('Ta')}
                             className="h-7 text-xs"
@@ -541,9 +655,9 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label className="text-sm font-semibold">English</Label>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
+                          <Button
+                            type="button"
+                            variant="outline"
                             size="sm"
                             onClick={() => addBenefit('En')}
                             className="h-7 text-xs"
@@ -580,9 +694,9 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password }) => {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label className="text-sm font-semibold">Tamil</Label>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
+                          <Button
+                            type="button"
+                            variant="outline"
                             size="sm"
                             onClick={() => addBenefit('Ta')}
                             className="h-7 text-xs"

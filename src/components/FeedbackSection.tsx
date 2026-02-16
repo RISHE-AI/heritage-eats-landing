@@ -1,169 +1,169 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Feedback } from "@/types/product";
-import { initialFeedback } from "@/data/feedback";
+import { fetchReviews, submitReview } from "@/services/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Star } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const FeedbackSection: React.FC = () => {
-  const [feedbackList, setFeedbackList] = useState<Feedback[]>(initialFeedback);
+  const [reviews, setReviews] = useState<Feedback[]>([]);
   const [name, setName] = useState("");
-  const [comment, setComment] = useState("");
   const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
   const [hoverRating, setHoverRating] = useState(0);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const loadReviews = async () => {
+    try {
+      const result = await fetchReviews();
+      if (result.success && result.data) {
+        const mapped = result.data.map((r: any) => ({
+          id: r._id || r.id,
+          _id: r._id,
+          name: r.customerName || r.name,
+          customerName: r.customerName,
+          productId: r.productId,
+          rating: r.rating,
+          comment: r.comment,
+          approved: r.approved,
+          createdAt: r.createdAt,
+        }));
+        setReviews(mapped);
+      }
+    } catch (error) {
+      console.error("Failed to load reviews:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadReviews();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !comment.trim()) {
-      toast.error("Please fill in all fields / அனைத்து புலங்களையும் நிரப்பவும்");
+      toast.error("Please fill in all fields");
       return;
     }
-
-    const newFeedback: Feedback = {
-      id: Date.now().toString(),
-      name: name.trim(),
-      rating,
-      comment: comment.trim(),
-      createdAt: new Date(),
-    };
-
-    setFeedbackList(prev => [newFeedback, ...prev]);
-    setName("");
-    setComment("");
-    setRating(5);
-    toast.success("Thank you for your feedback! / உங்கள் கருத்துக்கு நன்றி!");
-  };
-
-  const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    setIsSubmitting(true);
+    try {
+      const result = await submitReview({
+        customerName: name.trim(),
+        rating,
+        comment: comment.trim(),
+      });
+      if (result.success) {
+        toast.success("Review submitted! / விமர்சனம் சமர்ப்பிக்கப்பட்டது!");
+        setName("");
+        setRating(5);
+        setComment("");
+        loadReviews();
+      } else {
+        toast.error("Failed to submit review");
+      }
+    } catch (error) {
+      toast.error("Failed to submit review");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
-    }
-  };
+  // Split reviews into 3 rows
+  const row1 = reviews.filter((_, i) => i % 3 === 0);
+  const row2 = reviews.filter((_, i) => i % 3 === 1);
+  const row3 = reviews.filter((_, i) => i % 3 === 2);
+
+  // Average rating
+  const avgRating =
+    reviews.length > 0
+      ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+      : 0;
 
   return (
-    <section id="feedback" className="py-10 md:py-16 bg-secondary/30">
-      <div className="container px-4 md:px-6">
-        <div className="mb-6 md:mb-8 text-center">
-          <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">
-            Customer Reviews
+    <section id="reviews" className="py-12 md:py-20 bg-secondary/30">
+      <div className="container mx-auto px-4">
+        {/* Header with Total Count */}
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="font-serif text-2xl md:text-4xl font-bold mb-2">
+            Customer Reviews / வாடிக்கையாளர் விமர்சனங்கள்
           </h2>
-          <p className="mt-1 md:mt-2 text-lg md:text-xl text-muted-foreground tamil-text">
-            வாடிக்கையாளர் மதிப்புரைகள்
-          </p>
-          <div className="mx-auto mt-3 md:mt-4 h-1 w-20 md:w-24 rounded-full bg-gradient-to-r from-primary via-gold to-primary" />
-        </div>
-
-        {/* Horizontal Scrollable Reviews */}
-        <div className="relative mb-8 md:mb-12">
-          {/* Navigation Buttons - Hidden on mobile, shown on desktop */}
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 hidden md:flex h-10 w-10 rounded-full bg-background/90 backdrop-blur-sm shadow-lg hover:bg-background"
-            onClick={scrollLeft}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 hidden md:flex h-10 w-10 rounded-full bg-background/90 backdrop-blur-sm shadow-lg hover:bg-background"
-            onClick={scrollRight}
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-
-          {/* Scrollable Container */}
-          <div 
-            ref={scrollContainerRef}
-            className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-1 py-2 md:px-10"
-            style={{ scrollBehavior: 'smooth' }}
-          >
-            {feedbackList.map((feedback, index) => (
-              <FeedbackCard key={feedback.id || index} feedback={feedback} />
-            ))}
-          </div>
-
-          {/* Scroll indicators for mobile */}
-          <div className="flex justify-center gap-1 mt-4 md:hidden">
-            <div className="h-1 w-8 rounded-full bg-primary/50" />
-            <div className="h-1 w-2 rounded-full bg-muted-foreground/30" />
-            <div className="h-1 w-2 rounded-full bg-muted-foreground/30" />
+          <div className="flex items-center justify-center gap-3 mt-3">
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star
+                  key={s}
+                  className={cn(
+                    "h-5 w-5",
+                    s <= Math.round(avgRating)
+                      ? "text-amber-400 fill-amber-400"
+                      : "text-muted-foreground/30"
+                  )}
+                />
+              ))}
+            </div>
+            <span className="text-lg font-bold text-foreground">{avgRating}</span>
+            <span className="text-muted-foreground">
+              ({reviews.length} review{reviews.length !== 1 ? "s" : ""})
+            </span>
           </div>
         </div>
 
-        {/* Add Feedback Form */}
-        <div className="mx-auto max-w-lg px-2">
+        {/* 3 Animated Rows */}
+        {reviews.length > 0 && (
+          <div className="space-y-4 md:space-y-6 overflow-hidden mb-10 md:mb-14">
+            <AnimatedRow reviews={row1} direction="left" speed={35} />
+            <AnimatedRow reviews={row2} direction="right" speed={40} />
+            <AnimatedRow reviews={row3} direction="left" speed={30} />
+          </div>
+        )}
+
+        {/* Submit Review Form */}
+        <div className="max-w-lg mx-auto">
           <Card className="shadow-card">
             <CardContent className="p-4 md:p-6">
-              <h3 className="text-center font-serif text-lg md:text-xl font-semibold mb-3 md:mb-4">
-                Share Your Experience
-                <span className="block text-xs md:text-sm text-muted-foreground tamil-text">
-                  உங்கள் அனுபவத்தைப் பகிரவும்
-                </span>
+              <h3 className="font-serif text-lg font-bold mb-4 text-center">
+                Leave a Review / விமர்சனம் எழுதுங்கள்
               </h3>
-
               <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
-                <div>
-                  <Input
-                    placeholder="Your Name / உங்கள் பெயர்"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    className="h-11 md:h-10"
-                  />
+                <Input
+                  placeholder="Your Name / உங்கள் பெயர்"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setRating(s)}
+                      onMouseEnter={() => setHoverRating(s)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      className="p-0.5"
+                    >
+                      <Star
+                        className={cn(
+                          "h-6 w-6 transition-colors",
+                          s <= (hoverRating || rating)
+                            ? "text-amber-400 fill-amber-400"
+                            : "text-muted-foreground/30"
+                        )}
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-2 text-sm text-muted-foreground">{rating}/5</span>
                 </div>
-
-                {/* Star Rating */}
-                <div className="flex items-center gap-2 justify-center">
-                  <span className="text-sm text-muted-foreground">Rating:</span>
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map(star => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setRating(star)}
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(0)}
-                        className="transition-transform hover:scale-110 p-1"
-                      >
-                        <Star
-                          className={cn(
-                            "h-7 w-7 md:h-6 md:w-6",
-                            (hoverRating || rating) >= star
-                              ? "fill-gold text-gold"
-                              : "text-muted-foreground"
-                          )}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <Textarea
-                    placeholder="Your comment / உங்கள் கருத்து"
-                    value={comment}
-                    onChange={e => setComment(e.target.value)}
-                    rows={3}
-                    className="resize-none"
-                  />
-                </div>
-
-                <Button type="submit" className="w-full h-11 md:h-10 text-sm md:text-base">
-                  Submit Review
-                  <span className="ml-2 text-xs tamil-text">மதிப்புரை சமர்ப்பிக்கவும்</span>
+                <Textarea
+                  placeholder="Your review... / உங்கள் விமர்சனம்..."
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows={3}
+                />
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Submitting..." : "Submit Review / சமர்ப்பிக்கவும்"}
                 </Button>
               </form>
             </CardContent>
@@ -174,23 +174,60 @@ const FeedbackSection: React.FC = () => {
   );
 };
 
+// Animated row component with infinite scroll
+const AnimatedRow: React.FC<{
+  reviews: Feedback[];
+  direction: "left" | "right";
+  speed: number;
+}> = ({ reviews, direction, speed }) => {
+  if (reviews.length === 0) return null;
+
+  // Duplicate reviews for seamless infinite scroll
+  const duplicated = [...reviews, ...reviews, ...reviews];
+
+  return (
+    <div className="relative overflow-hidden group">
+      <div
+        className={cn(
+          "flex gap-4 w-max",
+          direction === "left" ? "animate-scroll-left" : "animate-scroll-right",
+          "group-hover:[animation-play-state:paused]"
+        )}
+        style={{ animationDuration: `${speed}s` }}
+      >
+        {duplicated.map((review, index) => (
+          <FeedbackCard key={`${review.id}-${index}`} feedback={review} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const FeedbackCard: React.FC<{ feedback: Feedback }> = ({ feedback }) => {
   return (
-    <Card className="flex-shrink-0 w-[280px] md:w-80 snap-center shadow-soft hover:shadow-card transition-shadow">
+    <Card className="w-[280px] md:w-[320px] shrink-0 shadow-card hover:shadow-hover transition-shadow">
       <CardContent className="p-4">
-        <div className="flex items-center gap-1 mb-2">
-          {[1, 2, 3, 4, 5].map(star => (
-            <Star
-              key={star}
-              className={cn(
-                "h-4 w-4",
-                star <= feedback.rating ? "fill-gold text-gold" : "text-muted-foreground"
-              )}
-            />
-          ))}
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-semibold text-sm text-foreground truncate mr-2">
+            {feedback.customerName || feedback.name}
+          </span>
+          <div className="flex items-center gap-0.5 shrink-0">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star
+                key={s}
+                className={cn(
+                  "h-3.5 w-3.5",
+                  s <= feedback.rating
+                    ? "text-amber-400 fill-amber-400"
+                    : "text-muted-foreground/30"
+                )}
+              />
+            ))}
+          </div>
         </div>
-        <p className="text-sm text-foreground line-clamp-3 min-h-[3.75rem]">{feedback.comment}</p>
-        <p className="mt-3 text-sm font-medium text-primary">— {feedback.name}</p>
+        <p className="text-xs md:text-sm text-muted-foreground line-clamp-3">
+          {feedback.comment}
+        </p>
       </CardContent>
     </Card>
   );

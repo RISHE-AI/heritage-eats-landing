@@ -8,6 +8,7 @@ import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
 import ProductReviews from "./ProductReviews";
 import StarRating from "./StarRating";
+import { fetchReviewStats } from "@/services/api";
 
 interface ProductModalProps {
   product: Product | null;
@@ -22,6 +23,8 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
   const [showAllIngredients, setShowAllIngredients] = useState(false);
   const [showAllBenefits, setShowAllBenefits] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
+  const [customMessage, setCustomMessage] = useState("");
+  const [reviewStats, setReviewStats] = useState({ reviewCount: 0, averageRating: 0 });
   const { addToCart } = useCart();
 
   // Auto-slide carousel
@@ -41,7 +44,17 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
     setShowAllIngredients(false);
     setShowAllBenefits(false);
     setActiveTab("details");
+    setCustomMessage("");
+    setReviewStats({ reviewCount: 0, averageRating: 0 });
   }, [product]);
+
+  // Fetch dynamic review stats
+  useEffect(() => {
+    if (!product || !open) return;
+    fetchReviewStats(product.id).then(res => {
+      if (res.success) setReviewStats(res.data);
+    }).catch(() => { });
+  }, [product, open]);
 
   if (!product) return null;
 
@@ -51,12 +64,12 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
   ];
 
   const currentPrice = selectedWeight
-    ? weightOptions.find(w => `${w.weight}${w.unit}` === selectedWeight)?.price || product.price
+    ? weightOptions.find(w => w.weight === selectedWeight)?.price || product.price
     : product.price;
 
   const handleAddToCart = () => {
     if (!selectedWeight) return;
-    addToCart(product, quantity, selectedWeight, currentPrice);
+    addToCart(product, quantity, selectedWeight, currentPrice, customMessage.trim() || undefined);
     onClose();
   };
 
@@ -68,7 +81,7 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+      <DialogContent className="max-w-[95vw] md:max-w-[80vw] lg:max-w-[75vw] max-h-[90vh] overflow-y-auto p-4 md:p-6">
         <DialogHeader>
           <DialogTitle className="sr-only">{product.nameEn}</DialogTitle>
         </DialogHeader>
@@ -115,9 +128,9 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
               <p className="mt-0.5 md:mt-1 text-base md:text-lg text-muted-foreground tamil-text">
                 {product.nameTa}
               </p>
-              {/* Star Rating Display */}
+              {/* Dynamic Star Rating */}
               <div className="mt-1.5 md:mt-2">
-                <StarRating rating={4.5} totalReviews={12} size="md" />
+                <StarRating rating={reviewStats.averageRating || 0} totalReviews={reviewStats.reviewCount} size="md" />
               </div>
             </div>
 
@@ -126,7 +139,7 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
               <p className="font-medium text-sm md:text-base mb-2">Select Weight / எடையை தேர்ந்தெடு:</p>
               <div className="flex flex-wrap gap-1.5 md:gap-2">
                 {weightOptions.map((option) => {
-                  const weightKey = `${option.weight}${option.unit}`;
+                  const weightKey = option.weight;
                   return (
                     <Button
                       key={weightKey}
@@ -135,7 +148,7 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
                       onClick={() => setSelectedWeight(weightKey)}
                       className="min-w-[70px] md:min-w-[80px] h-9 md:h-10 text-xs md:text-sm"
                     >
-                      {option.weight}{option.unit} - ₹{option.price}
+                      {option.weight} - ₹{option.price}
                     </Button>
                   );
                 })}
@@ -176,6 +189,22 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
               </div>
             </div>
 
+            {/* Custom Instructions */}
+            <div className="mt-4">
+              <label className="text-sm font-medium text-foreground">Custom Instructions (Optional) / விருப்ப குறிப்பு:</label>
+              <textarea
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                placeholder="e.g. Less sugar, Make it spicy, Birthday gift packing..."
+                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                rows={2}
+                maxLength={200}
+              />
+              {customMessage && (
+                <p className="text-xs text-muted-foreground mt-1">{customMessage.length}/200</p>
+              )}
+            </div>
+
             {/* Add to Cart Button */}
             <Button
               size="lg"
@@ -206,7 +235,7 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
                 Reviews
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="details" className="mt-4 md:mt-6 animate-fade-in">
               <h3 className="mb-4 md:mb-6 text-center font-serif text-lg md:text-xl font-bold">
                 Ingredients & Benefits
@@ -316,11 +345,11 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
                 </div>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="reviews" className="mt-4 md:mt-6 animate-fade-in">
-              <ProductReviews 
-                productId={product.id} 
-                productName={product.nameEn} 
+              <ProductReviews
+                productId={product.id}
+                productName={product.nameEn}
               />
             </TabsContent>
           </Tabs>

@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchReviews as apiFetchReviews, submitReview as apiSubmitReview } from "@/services/api";
 import { toast } from "sonner";
 
 interface Review {
@@ -31,7 +31,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
   const [ratingDistribution, setRatingDistribution] = useState<Record<number, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Form state
   const [name, setName] = useState("");
   const [rating, setRating] = useState(0);
@@ -46,21 +46,36 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
   const fetchReviews = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('reviews', {
-        method: 'GET'
-      });
-      
-      if (error) throw error;
-      
-      // Filter by productId if provided, otherwise show all
-      const filteredReviews = productId 
-        ? data.reviews.filter((r: Review) => r.productId === productId)
-        : data.reviews;
-      
-      setReviews(filteredReviews);
-      setAvgRating(data.avgRating);
-      setTotalReviews(data.totalReviews);
-      setRatingDistribution(data.ratingDistribution);
+      const result = await apiFetchReviews(productId);
+
+      if (result.success) {
+        const reviewData = result.data || [];
+        // Map backend fields to component fields
+        const mapped = reviewData.map((r: any) => ({
+          id: r._id || r.id,
+          name: r.customerName || r.name,
+          rating: r.rating,
+          comment: r.comment,
+          productId: r.productId,
+          verified: r.approved !== undefined ? r.approved : (r.verified || false),
+          createdAt: r.createdAt
+        }));
+
+        setReviews(mapped);
+        setTotalReviews(mapped.length);
+
+        // Calculate avg rating and distribution
+        if (mapped.length > 0) {
+          const sum = mapped.reduce((acc: number, r: any) => acc + r.rating, 0);
+          setAvgRating(sum / mapped.length);
+
+          const dist: Record<number, number> = {};
+          mapped.forEach((r: any) => {
+            dist[r.rating] = (dist[r.rating] || 0) + 1;
+          });
+          setRatingDistribution(dist);
+        }
+      }
     } catch (error) {
       console.error('Error fetching reviews:', error);
     } finally {
@@ -70,7 +85,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim() || !comment.trim() || rating === 0) {
       toast.error("Please fill in all fields and select a rating");
       return;
@@ -78,17 +93,12 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
 
     setIsSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('reviews/add', {
-        body: {
-          name: name.trim(),
-          rating,
-          comment: comment.trim(),
-          productId,
-          productName
-        }
+      await apiSubmitReview({
+        customerName: name.trim(),
+        rating,
+        comment: comment.trim(),
+        productId,
       });
-
-      if (error) throw error;
 
       toast.success("Thank you for your review! / உங்கள் மதிப்புரைக்கு நன்றி!");
       setName("");
@@ -110,7 +120,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
       md: "h-4 w-4",
       lg: "h-5 w-5"
     };
-    
+
     return (
       <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => (
@@ -149,13 +159,13 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
             {totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}
           </p>
         </div>
-        
+
         {/* Rating Distribution */}
         <div className="flex-1 space-y-2">
           {[5, 4, 3, 2, 1].map((star) => {
             const count = ratingDistribution[star] || 0;
             const percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
-            
+
             return (
               <div key={star} className="flex items-center gap-2">
                 <span className="text-sm w-3">{star}</span>
@@ -183,7 +193,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
       {showForm && (
         <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-xl bg-card animate-fade-in">
           <h4 className="font-semibold">Write Your Review</h4>
-          
+
           {/* Star Rating Input */}
           <div>
             <label className="text-sm text-muted-foreground mb-2 block">

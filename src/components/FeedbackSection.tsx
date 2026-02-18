@@ -1,18 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Star, ThumbsUp, ChevronLeft, ChevronRight, Shield, Quote } from "lucide-react";
-import { fetchAllReviews } from "@/services/api";
+import { Star, ThumbsUp, ChevronLeft, ChevronRight, Shield, Quote, Send, Loader2, CheckCircle2, ImagePlus, X } from "lucide-react";
+import { fetchAllReviews, submitReview } from "@/services/api";
+import { toast } from "sonner";
 
 interface Review {
   _id: string;
   rating: number;
   comment: string;
   userName?: string;
+  customerName?: string;
   productName?: string;
+  reviewImage?: string;
   createdAt: string;
   verified?: boolean;
+  type?: string;
 }
+
+const DUPLICATE_KEY = "maghizam_overall_review_submitted";
 
 const FeedbackSection: React.FC = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -20,9 +26,22 @@ const FeedbackSection: React.FC = () => {
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Submit form state
+  const [reviewName, setReviewName] = useState("");
+  const [reviewRating, setReviewRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewImageFile, setReviewImageFile] = useState<File | null>(null);
+  const [reviewImagePreview, setReviewImagePreview] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const REVIEWS_PER_PAGE = 3;
 
   useEffect(() => {
+    setAlreadySubmitted(!!localStorage.getItem(DUPLICATE_KEY));
     fetchAllReviews()
       .then(res => {
         if (res.success) setReviews(res.data);
@@ -51,6 +70,51 @@ const FeedbackSection: React.FC = () => {
     pct: reviews.length ? (reviews.filter(r => r.rating === star).length / reviews.length) * 100 : 0,
   }));
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
+    setReviewImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setReviewImagePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewName.trim()) { toast.error("Please enter your name"); return; }
+    if (!reviewRating) { toast.error("Please select a rating"); return; }
+    if (!reviewComment.trim()) { toast.error("Please write a comment"); return; }
+
+    setSubmitting(true);
+    try {
+      const res = await submitReview({
+        customerName: reviewName.trim(),
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+        type: "overall",
+        productId: "",
+        productName: "",
+        reviewImage: reviewImageFile,
+      });
+      if (res.success) {
+        localStorage.setItem(DUPLICATE_KEY, "1");
+        setAlreadySubmitted(true);
+        setSubmitSuccess(true);
+        toast.success("Thank you for your review! 🎉");
+        // Refresh reviews
+        const updated = await fetchAllReviews();
+        if (updated.success) setReviews(updated.data);
+      } else {
+        toast.error(res.message || "Failed to submit review");
+      }
+    } catch (err) {
+      toast.error("Failed to submit review. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <section id="feedback" className="py-10 md:py-16 bg-secondary/20">
       <div className="container px-4 md:px-8">
@@ -63,6 +127,9 @@ const FeedbackSection: React.FC = () => {
             வாடிக்கையாளர் மதிப்புரைகள்
           </p>
           <div className="mx-auto mt-3 h-0.5 w-16 rounded-full bg-gradient-to-r from-transparent via-primary to-transparent" />
+          {reviews.length > 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">{reviews.length} reviews from happy customers</p>
+          )}
         </div>
 
         {loading ? (
@@ -73,7 +140,7 @@ const FeedbackSection: React.FC = () => {
             </div>
           </div>
         ) : reviews.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="text-center py-8">
             <p className="text-muted-foreground">No reviews yet. Be the first to review!</p>
           </div>
         ) : (
@@ -106,8 +173,7 @@ const FeedbackSection: React.FC = () => {
                         <button
                           key={star}
                           onClick={() => setFilterRating(filterRating === star ? null : star)}
-                          className={`w-full flex items-center gap-2 py-0.5 text-xs transition-colors hover:bg-secondary/50 rounded-md px-1 ${filterRating === star ? "bg-primary/10" : ""
-                            }`}
+                          className={`w-full flex items-center gap-2 py-0.5 text-xs transition-colors hover:bg-secondary/50 rounded-md px-1 ${filterRating === star ? "bg-primary/10" : ""}`}
                         >
                           <span className="w-5 text-right font-medium">{star}★</span>
                           <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
@@ -159,11 +225,11 @@ const FeedbackSection: React.FC = () => {
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                        {(review.userName || "U")[0].toUpperCase()}
+                        {((review.userName || review.customerName) || "U")[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-semibold truncate">{review.userName || "Customer"}</span>
+                          <span className="text-sm font-semibold truncate">{review.userName || review.customerName || "Customer"}</span>
                           {review.verified !== false && (
                             <span className="inline-flex items-center gap-0.5 text-[10px] text-success font-medium bg-success/10 px-1.5 py-0.5 rounded-full">
                               <Shield className="h-2.5 w-2.5" /> Verified
@@ -184,6 +250,16 @@ const FeedbackSection: React.FC = () => {
                       <Quote className="h-3 w-3 text-muted-foreground/30 inline mr-1 -mt-0.5" />
                       {review.comment}
                     </p>
+                    {review.reviewImage && (
+                      <div className="mt-3 rounded-lg overflow-hidden h-32 w-full bg-secondary/20">
+                        <img
+                          src={review.reviewImage.startsWith('http') ? review.reviewImage : `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/${review.reviewImage.replace(/^\//, '')}`}
+                          alt="Review"
+                          className="h-full w-full object-cover hover:scale-105 transition-transform duration-500"
+                          onError={(e) => { (e.target as HTMLDivElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
                     {review.productName && (
                       <p className="mt-2 text-[10px] text-muted-foreground">
                         Reviewed: {review.productName}
@@ -222,6 +298,137 @@ const FeedbackSection: React.FC = () => {
             )}
           </>
         )}
+
+        {/* ── Leave Your Review Form ── */}
+        <div className="max-w-xl mx-auto mt-12">
+          <div className="text-center mb-6">
+            <h3 className="font-serif text-lg font-bold text-foreground">Leave Your Review</h3>
+            <p className="text-xs text-muted-foreground tamil-text mt-1">உங்கள் கருத்தை பகிரவும்</p>
+            <div className="mx-auto mt-2 h-0.5 w-12 rounded-full bg-gradient-to-r from-transparent via-primary to-transparent" />
+          </div>
+
+          {submitSuccess || alreadySubmitted ? (
+            <Card className="rounded-2xl shadow-card border border-emerald-200/40 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-950/20">
+              <CardContent className="p-6 text-center">
+                <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-3" />
+                <h4 className="font-semibold text-emerald-800 dark:text-emerald-300 mb-1">Thank you for your review!</h4>
+                <p className="text-sm text-emerald-700/70 dark:text-emerald-500">
+                  Your feedback helps us serve you better. 🙏
+                </p>
+                <p className="text-xs text-emerald-600/60 dark:text-emerald-600 tamil-text mt-1">
+                  உங்கள் கருத்திற்கு நன்றி!
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="rounded-2xl shadow-card">
+              <CardContent className="p-5">
+                <form onSubmit={handleSubmitReview} className="space-y-4">
+                  {/* Name */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Your Name</label>
+                    <input
+                      type="text"
+                      value={reviewName}
+                      onChange={e => setReviewName(e.target.value)}
+                      placeholder="Enter your name"
+                      maxLength={80}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+
+                  {/* Star Rating */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Rating</label>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map(s => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setReviewRating(s)}
+                          onMouseEnter={() => setHoverRating(s)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          className="transition-transform hover:scale-110 active:scale-95"
+                        >
+                          <Star
+                            className={`h-7 w-7 transition-colors ${s <= (hoverRating || reviewRating)
+                              ? "text-amber-500 fill-amber-500"
+                              : "text-muted-foreground/30"
+                              }`}
+                          />
+                        </button>
+                      ))}
+                      {reviewRating > 0 && (
+                        <span className="ml-2 text-xs text-muted-foreground self-center">
+                          {["", "Poor", "Fair", "Good", "Great", "Excellent!"][reviewRating]}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Comment */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Your Comment</label>
+                    <textarea
+                      value={reviewComment}
+                      onChange={e => setReviewComment(e.target.value)}
+                      placeholder="Share your experience with Maghizam Homemade Delights..."
+                      rows={3}
+                      maxLength={500}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none transition-all"
+                    />
+                    <p className="text-[10px] text-muted-foreground text-right">{reviewComment.length}/500</p>
+                  </div>
+
+                  {/* Image Upload */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Photo (Optional)</label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageSelect}
+                    />
+                    {reviewImagePreview ? (
+                      <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-border">
+                        <img src={reviewImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => { setReviewImageFile(null); setReviewImagePreview(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                          className="absolute top-1 right-1 h-5 w-5 rounded-full bg-background/80 flex items-center justify-center hover:bg-background transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-border hover:border-primary/50 text-xs text-muted-foreground hover:text-foreground transition-all"
+                      >
+                        <ImagePlus className="h-4 w-4" />
+                        Add a photo
+                      </button>
+                    )}
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full rounded-xl gap-2 h-11"
+                    disabled={submitting || !reviewRating || !reviewName.trim() || !reviewComment.trim()}
+                  >
+                    {submitting ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Submitting...</>
+                    ) : (
+                      <><Send className="h-4 w-4" /> Submit Review</>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </section>
   );

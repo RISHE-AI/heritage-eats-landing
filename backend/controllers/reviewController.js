@@ -1,10 +1,42 @@
 const Review = require('../models/Review');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Multer setup for review images
+const reviewUploadDir = path.join(__dirname, '../uploads/reviews');
+if (!fs.existsSync(reviewUploadDir)) fs.mkdirSync(reviewUploadDir, { recursive: true });
+
+const reviewStorage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, reviewUploadDir),
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, `review-${Date.now()}${ext}`);
+    }
+});
+
+const reviewUpload = multer({
+    storage: reviewStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: (req, file, cb) => {
+        const allowed = /jpeg|jpg|png|webp|gif/;
+        const ok = allowed.test(path.extname(file.originalname).toLowerCase()) && allowed.test(file.mimetype);
+        cb(ok ? null : new Error('Only image files are allowed'), ok);
+    }
+});
+
+// Export multer middleware for use in routes
+const uploadReviewImage = reviewUpload.single('reviewImage');
 
 // @desc    Create a new review
 // @route   POST /api/reviews
 const createReview = async (req, res, next) => {
     try {
-        const review = await Review.create(req.body);
+        const reviewData = { ...req.body };
+        if (req.file) {
+            reviewData.reviewImage = `uploads/reviews/${req.file.filename}`;
+        }
+        const review = await Review.create(reviewData);
         res.status(201).json({
             success: true,
             data: review
@@ -115,5 +147,6 @@ module.exports = {
     getAllReviews,
     deleteReview,
     approveReview,
-    getProductReviewStats
+    getProductReviewStats,
+    uploadReviewImage
 };

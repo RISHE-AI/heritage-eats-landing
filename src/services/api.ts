@@ -68,6 +68,21 @@ export const deleteProduct = async (id: string) => {
     return handleResponse(res);
 };
 
+export const uploadProductImage = async (file: File): Promise<{ path: string }> => {
+    const token = localStorage.getItem('admin_token');
+    const formData = new FormData();
+    formData.append('image', file);
+    const headers: HeadersInit = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/upload/product-image`, {
+        method: 'POST',
+        headers,
+        body: formData
+    });
+    const data = await handleResponse(res);
+    return data.data;
+};
+
 // ========== CUSTOMERS / AUTH ==========
 export const signupCustomer = async (name: string, phone: string, password: string, email?: string) => {
     const res = await fetch(`${API_BASE}/customers/signup`, {
@@ -144,11 +159,27 @@ export const fetchReviews = async (productId?: string) => {
     return handleResponse(res);
 };
 
-export const submitReview = async (review: any) => {
+export const submitReview = async (review: {
+    customerName: string;
+    rating: number;
+    comment: string;
+    type?: string;
+    productId?: string;
+    productName?: string;
+    reviewImage?: File | null;
+}) => {
+    const { reviewImage, ...rest } = review;
+    if (reviewImage) {
+        const formData = new FormData();
+        Object.entries(rest).forEach(([k, v]) => { if (v !== undefined) formData.append(k, String(v)); });
+        formData.append('reviewImage', reviewImage);
+        const res = await fetch(`${API_BASE}/reviews`, { method: 'POST', body: formData });
+        return handleResponse(res);
+    }
     const res = await fetch(`${API_BASE}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(review)
+        body: JSON.stringify(rest)
     });
     return handleResponse(res);
 };
@@ -262,7 +293,7 @@ export const fetchReviewStats = async (productId: string) => {
     return handleResponse(res);
 };
 
-// ========== CART (user-scoped) ==========
+
 export const fetchCart = async () => {
     const res = await fetch(`${API_BASE}/cart`, {
         headers: getAuthHeaders()

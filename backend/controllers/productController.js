@@ -86,6 +86,13 @@ const createProduct = async (req, res, next) => {
                 .replace(/^-|-$/g, '') + '-' + Date.now().toString(36);
         }
 
+        // Sanitize images: remove placeholder.svg entries, keep real URLs and upload paths
+        if (req.body.images !== undefined) {
+            req.body.images = (req.body.images || []).filter(
+                img => img && img.trim() !== '' && img !== '/placeholder.svg'
+            );
+        }
+
         const product = await Product.create(req.body);
         res.status(201).json({
             success: true,
@@ -134,9 +141,16 @@ const updateProduct = async (req, res, next) => {
             req.body.basePrice = Number(req.body.basePrice);
         }
 
+        // Sanitize images: remove placeholder.svg entries, keep real URLs and upload paths
+        if (req.body.images !== undefined) {
+            req.body.images = (req.body.images || []).filter(
+                img => img && img.trim() !== '' && img !== '/placeholder.svg'
+            );
+        }
+
         const updated = await Product.findByIdAndUpdate(
             product._id,
-            req.body,
+            { $set: req.body },
             { new: true, runValidators: true }
         );
 

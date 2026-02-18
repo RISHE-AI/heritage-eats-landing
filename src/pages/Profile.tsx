@@ -6,7 +6,10 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Settings, LogOut, ArrowLeft, Loader2, MapPin, Phone as PhoneIcon, Edit2, Check, X, ShoppingBag } from "lucide-react";
+import {
+  User, Settings, LogOut, ArrowLeft, Loader2, MapPin,
+  Phone as PhoneIcon, Edit2, Check, X, ShoppingBag, Mail, Calendar, Star
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -27,10 +30,10 @@ const Profile: React.FC = () => {
   const { themeColor, setThemeColor } = useThemeColor();
   const [activeTab, setActiveTab] = useState("profile");
 
-  // Edit profile state
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editAddress, setEditAddress] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -41,6 +44,7 @@ const Profile: React.FC = () => {
     if (user) {
       setEditName(user.name || "");
       setEditAddress(user.address || "");
+      setEditEmail(user.email || "");
     }
   }, [user]);
 
@@ -49,7 +53,7 @@ const Profile: React.FC = () => {
     setSaving(true);
     try {
       if (updateProfile) {
-        await updateProfile({ name: editName.trim(), address: editAddress.trim() });
+        await updateProfile({ name: editName.trim(), address: editAddress.trim(), email: editEmail.trim() });
       }
       setEditing(false);
       toast.success("Profile updated!");
@@ -73,26 +77,65 @@ const Profile: React.FC = () => {
     );
   }
 
-  const initials = user.name ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "U";
+  const initials = user.name
+    ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+    : "U";
+
+  const memberSince = user.createdAt
+    ? new Date(user.createdAt).toLocaleDateString("en-IN", { month: "short", year: "numeric" })
+    : "—";
 
   return (
     <div className="min-h-screen bg-background page-enter pb-safe-bottom">
       <Header />
       <div className="container px-4 py-6 md:py-10 max-w-2xl mx-auto">
         {/* Back */}
-        <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="mb-5 gap-1.5 text-xs">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="mb-4 gap-1.5 text-xs">
           <ArrowLeft className="h-3.5 w-3.5" /> Back to Home
         </Button>
 
-        {/* Profile Header */}
-        <div className="text-center mb-6 animate-fade-in">
-          <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto text-xl font-bold shadow-lg">
-            {initials}
+        {/* ── Gradient Banner Header ── */}
+        <div className="relative rounded-2xl overflow-hidden mb-6 animate-fade-in">
+          {/* Banner background */}
+          <div className="h-28 bg-gradient-to-br from-primary via-primary/80 to-accent" />
+
+          {/* Avatar + info overlay */}
+          <div className="px-5 pb-4 bg-card border border-border rounded-b-2xl">
+            <div className="flex items-end gap-4 -mt-10">
+              {/* Avatar */}
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center text-2xl font-bold shadow-lg border-4 border-card shrink-0">
+                {initials}
+              </div>
+              {/* Name + phone */}
+              <div className="pb-2 flex-1 min-w-0">
+                <h1 className="font-serif text-lg font-bold text-foreground truncate">{user.name || "User"}</h1>
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                  <PhoneIcon className="h-3 w-3" /> {user.phone}
+                </p>
+                {user.email && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <Mail className="h-3 w-3" /> {user.email}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-border">
+              <div className="text-center">
+                <p className="text-base font-bold text-foreground">{user.totalOrders ?? 0}</p>
+                <p className="text-[10px] text-muted-foreground">Orders</p>
+              </div>
+              <div className="text-center border-x border-border">
+                <p className="text-base font-bold text-foreground">₹{user.totalSpent ?? 0}</p>
+                <p className="text-[10px] text-muted-foreground">Spent</p>
+              </div>
+              <div className="text-center">
+                <p className="text-base font-bold text-foreground">{memberSince}</p>
+                <p className="text-[10px] text-muted-foreground">Member Since</p>
+              </div>
+            </div>
           </div>
-          <h1 className="font-serif text-lg font-bold mt-3">{user.name || "User"}</h1>
-          <p className="text-xs text-muted-foreground flex items-center gap-1 justify-center mt-0.5">
-            <PhoneIcon className="h-3 w-3" /> {user.phone}
-          </p>
         </div>
 
         {/* Tabs */}
@@ -111,7 +154,7 @@ const Profile: React.FC = () => {
 
           {/* Profile Tab */}
           <TabsContent value="profile" className="animate-fade-in">
-            <Card className="rounded-2xl shadow-card">
+            <Card className="rounded-2xl shadow-card border border-border">
               <CardContent className="p-4 md:p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-sm">Personal Information</h3>
@@ -125,7 +168,12 @@ const Profile: React.FC = () => {
                         {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                         Save
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => { setEditing(false); setEditName(user.name || ""); setEditAddress(user.address || ""); }} className="text-xs h-8">
+                      <Button variant="ghost" size="sm" onClick={() => {
+                        setEditing(false);
+                        setEditName(user.name || "");
+                        setEditAddress(user.address || "");
+                        setEditEmail(user.email || "");
+                      }} className="text-xs h-8">
                         <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -133,27 +181,67 @@ const Profile: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
+                  {/* Name */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Name</Label>
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <User className="h-3 w-3" /> Name
+                    </Label>
                     {editing ? (
                       <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="rounded-xl input-glow" />
                     ) : (
                       <p className="text-sm font-medium">{user.name || "Not set"}</p>
                     )}
                   </div>
+
+                  {/* Phone (read-only) */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Phone</Label>
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <PhoneIcon className="h-3 w-3" /> Phone
+                    </Label>
                     <p className="text-sm font-medium">{user.phone}</p>
                   </div>
+
+                  {/* Email */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Mail className="h-3 w-3" /> Email
+                    </Label>
+                    {editing ? (
+                      <Input
+                        type="email"
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        placeholder="your@email.com"
+                        className="rounded-xl input-glow"
+                      />
+                    ) : (
+                      <p className="text-sm font-medium">{user.email || <span className="text-muted-foreground italic">Not set</span>}</p>
+                    )}
+                  </div>
+
+                  {/* Address */}
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground flex items-center gap-1">
                       <MapPin className="h-3 w-3" /> Address
                     </Label>
                     {editing ? (
-                      <Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="Enter your delivery address" className="rounded-xl input-glow" />
+                      <Input
+                        value={editAddress}
+                        onChange={(e) => setEditAddress(e.target.value)}
+                        placeholder="Enter your delivery address"
+                        className="rounded-xl input-glow"
+                      />
                     ) : (
-                      <p className="text-sm">{user.address || "Not set"}</p>
+                      <p className="text-sm">{user.address || <span className="text-muted-foreground italic">Not set</span>}</p>
                     )}
+                  </div>
+
+                  {/* Member since */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-3 w-3" /> Member Since
+                    </Label>
+                    <p className="text-sm font-medium">{memberSince}</p>
                   </div>
                 </div>
               </CardContent>
@@ -162,7 +250,7 @@ const Profile: React.FC = () => {
 
           {/* Orders Tab */}
           <TabsContent value="orders" className="animate-fade-in">
-            <Card className="rounded-2xl shadow-card">
+            <Card className="rounded-2xl shadow-card border border-border">
               <CardContent className="p-5 text-center">
                 <div className="w-12 h-12 mx-auto rounded-xl bg-secondary flex items-center justify-center mb-3">
                   <ShoppingBag className="h-6 w-6 text-muted-foreground" />
@@ -177,8 +265,7 @@ const Profile: React.FC = () => {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="animate-fade-in space-y-4">
-            {/* Theme Settings */}
-            <Card className="rounded-2xl shadow-card">
+            <Card className="rounded-2xl shadow-card border border-border">
               <CardContent className="p-4 md:p-5">
                 <h3 className="font-semibold text-sm mb-3">Theme Preferences</h3>
                 <div className="space-y-4">
@@ -206,8 +293,11 @@ const Profile: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Logout */}
-            <Button variant="outline" className="w-full rounded-xl border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground gap-2" onClick={handleLogout}>
+            <Button
+              variant="outline"
+              className="w-full rounded-xl border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground gap-2"
+              onClick={handleLogout}
+            >
               <LogOut className="h-4 w-4" /> Logout
             </Button>
           </TabsContent>

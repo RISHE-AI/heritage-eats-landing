@@ -15,6 +15,7 @@ interface Review {
   comment: string;
   productId?: string;
   productName?: string;
+  reviewImage?: string;
   verified: boolean;
   createdAt: string;
 }
@@ -58,6 +59,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
           comment: r.comment,
           productId: r.productId,
           verified: r.approved !== undefined ? r.approved : (r.verified || false),
+          reviewImage: r.reviewImage,
           createdAt: r.createdAt
         }));
 
@@ -311,6 +313,16 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
                 </div>
               </div>
               <p className="mt-3 text-muted-foreground">{review.comment}</p>
+              {review.reviewImage && (
+                <div className="mt-3 rounded-lg overflow-hidden h-32 w-full bg-secondary/20 max-w-xs">
+                  <img
+                    src={review.reviewImage.startsWith('http') ? review.reviewImage : `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/${review.reviewImage.replace(/^\//, '')}`}
+                    alt="Review"
+                    className="h-full w-full object-cover hover:scale-105 transition-transform duration-500"
+                    onError={(e) => { (e.target as HTMLDivElement).style.display = 'none'; }}
+                  />
+                </div>
+              )}
             </div>
           ))
         )}

@@ -197,9 +197,9 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
               Delivery Address / டெலிவரி முகவரி *
             </Label>
             <div className="p-2 bg-secondary/50 rounded-md text-xs text-muted-foreground mb-2">
-              <span className="font-medium">Delivery Info:</span> ₹60/kg delivery charge OR FREE delivery for orders above ₹1000
+              <span className="font-medium">Delivery Info:</span> ₹60/kg delivery charge
               <span className="block tamil-text mt-1">
-                கிலோவுக்கு ₹60 டெலிவரி அல்லது ₹1000க்கு மேல் இலவச டெலிவரி
+                கிலோவுக்கு ₹60 டெலிவரி கட்டணம்
               </span>
             </div>
             <Textarea

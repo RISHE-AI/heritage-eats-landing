@@ -128,6 +128,7 @@ const verifyPayment = async (req, res, next) => {
                     orderId,
                     customerName: customerInfo?.name || orderData.customerName || '',
                     customerPhone: customerInfo?.phone || orderData.customerPhone || '',
+                    customerEmail: customerInfo?.email || orderData.customerEmail || '',
                     customerAddress: customerInfo?.address || orderData.customerAddress || '',
                     items: orderData.items || [],
                     deliveryCharge: orderData.deliveryCharge || 0,

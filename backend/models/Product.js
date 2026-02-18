@@ -48,7 +48,7 @@ const productSchema = new mongoose.Schema({
     },
     images: {
         type: [String],
-        default: ['/placeholder.svg']
+        default: []
     },
     ingredients_en: {
         type: [String],

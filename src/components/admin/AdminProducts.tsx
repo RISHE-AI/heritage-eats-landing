@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { fetchProducts as apiFetchProducts, createProduct, updateProduct } from '@/services/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { fetchProducts as apiFetchProducts, createProduct, updateProduct, uploadProductImage } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus, Edit, Package, Search, RefreshCw,
-  Save, X, Trash2, Languages, Calculator
+  Save, X, Trash2, Languages, Calculator, Upload, Link, Image as ImageIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Product, transformProduct } from '@/types/product';
@@ -31,6 +31,9 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -82,7 +85,9 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
         basePrice: editingProduct.price,
         description_en: editingProduct.descriptionEn,
         description_ta: editingProduct.descriptionTa,
-        images: editingProduct.images,
+        images: (editingProduct.images || []).filter(
+          img => img && img.trim() !== '' && img !== '/placeholder.svg'
+        ),
         ingredients_en: editingProduct.ingredientsEn,
         ingredients_ta: editingProduct.ingredientsTa,
         benefits_en: editingProduct.benefitsEn,
@@ -109,6 +114,33 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
       const msg = error?.message || error?.data?.message || 'Failed to save product';
       toast.error(msg);
     }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setUploadingImage(true);
+    try {
+      const result = await uploadProductImage(file);
+      const newImages = [...(editingProduct?.images || []), result.path];
+      setEditingProduct(prev => prev ? { ...prev, images: newImages } : prev);
+      toast.success('Image uploaded successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleAddImageUrl = () => {
+    if (!imageUrlInput.trim()) return;
+    const newImages = [...(editingProduct?.images || []), imageUrlInput.trim()];
+    setEditingProduct(prev => prev ? { ...prev, images: newImages } : prev);
+    setImageUrlInput('');
+    toast.success('Image URL added');
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const newImages = (editingProduct?.images || []).filter((_, i) => i !== index);
+    setEditingProduct(prev => prev ? { ...prev, images: newImages } : prev);
   };
 
   const updateIngredient = (lang: 'En' | 'Ta', index: number, value: string) => {
@@ -562,6 +594,97 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
                         <Plus className="h-3 w-3 mr-1" />
                         Add Weight
                       </Button>
+                    </div>
+                    {/* Image Management Section */}
+                    <div className="border rounded-lg p-3 space-y-3 bg-secondary/20">
+                      <Label className="text-sm font-semibold flex items-center gap-1.5">
+                        <ImageIcon className="h-4 w-4" />
+                        Product Images
+                      </Label>
+
+                      {/* Existing Images Preview */}
+                      {(editingProduct.images || []).filter(img => img && img.trim()).length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {(editingProduct.images || []).filter(img => img && img.trim()).map((img, idx) => {
+                            const BACKEND = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+                            const src = img.startsWith('http') ? img : `${BACKEND}/${img}`;
+                            return (
+                              <div key={idx} className="relative group">
+                                <img
+                                  src={src}
+                                  alt={`Product ${idx + 1}`}
+                                  className="w-16 h-16 object-cover rounded-lg border"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                                <button
+                                  onClick={() => handleRemoveImage(idx)}
+                                  className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full w-4 h-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* URL Input */}
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                          <Link className="h-3 w-3" /> Paste Image URL
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={imageUrlInput}
+                            onChange={(e) => setImageUrlInput(e.target.value)}
+                            placeholder="https://example.com/image.jpg"
+                            className="h-8 text-xs flex-1"
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddImageUrl()}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs px-3"
+                            onClick={handleAddImageUrl}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* File Upload */}
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                          <Upload className="h-3 w-3" /> Upload Image File
+                        </Label>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImageUpload(file);
+                            e.target.value = '';
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="w-full h-8 text-xs"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploadingImage}
+                        >
+                          {uploadingImage ? (
+                            <><RefreshCw className="h-3 w-3 mr-1 animate-spin" /> Uploading...</>
+                          ) : (
+                            <><Upload className="h-3 w-3 mr-1" /> Choose File to Upload</>
+                          )}
+                        </Button>
+                        <p className="text-[10px] text-muted-foreground mt-1">Max 5MB · JPG, PNG, WebP, GIF</p>
+                      </div>
                     </div>
                   </TabsContent>
 

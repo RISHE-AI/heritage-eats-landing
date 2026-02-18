@@ -75,10 +75,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
         {/* Image */}
         <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-secondary/20 shrink-0">
           <img
-            src={product.images[0]}
+            src={(() => {
+              const img = product.images?.[0];
+              if (!img || img === '/placeholder.svg') return '/placeholder.svg';
+              if (img.startsWith('http') || img.startsWith('/images/') || img.startsWith('/placeholder')) return img;
+              const BACKEND = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+              return `${BACKEND}/${img.replace(/^\//, '')}`;
+            })()}
             alt={product.nameEn}
             className="h-full w-full object-cover"
             loading="lazy"
+            onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
           />
           {badge && (
             <span className={cn(
@@ -112,7 +119,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
             <div>
               <span className="text-base font-bold text-primary">₹{currentPrice}</span>
               <span className="ml-1 text-[10px] text-muted-foreground">
-                {currentWeight.weight}{currentWeight.unit || 'g'}
+                {currentWeight.weight}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -162,10 +169,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
       {/* Image Container */}
       <div className="aspect-[4/3] overflow-hidden bg-secondary/20 relative shine-effect">
         <img
-          src={product.images[0]}
+          src={(() => {
+            const img = product.images?.[0];
+            if (!img || img === '/placeholder.svg') return '/placeholder.svg';
+            if (img.startsWith('http') || img.startsWith('/images/') || img.startsWith('/placeholder')) return img;
+            const BACKEND = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+            return `${BACKEND}/${img.replace(/^\//, '')}`;
+          })()}
           alt={product.nameEn}
           className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
           loading="lazy"
+          onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
         />
 
         {/* Badge */}
@@ -258,7 +272,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
           >
             {weightOptions.map((w, i) => (
               <option key={i} value={i}>
-                {w.weight}{w.unit} — ₹{w.price}
+                {w.weight} — ₹{w.price}
               </option>
             ))}
           </select>
@@ -268,7 +282,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
         <div className="mb-3">
           <span className="text-lg md:text-xl font-bold text-primary">₹{currentPrice}</span>
           <span className="ml-1.5 text-[11px] md:text-xs text-muted-foreground font-medium">
-            {currentWeight.weight}{currentWeight.unit || 'g'} pack
+            {currentWeight.weight} pack
           </span>
         </div>
 

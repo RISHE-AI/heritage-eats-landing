@@ -35,6 +35,15 @@ const reviewSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    type: {
+        type: String,
+        enum: ['product', 'overall'],
+        default: 'product'
+    },
+    reviewImage: {
+        type: String,
+        default: ''
+    },
     approved: {
         type: Boolean,
         default: true

@@ -1,9 +1,12 @@
-import React, { useState, useEffect, forwardRef } from "react";
+import React, { useState, useEffect, forwardRef, useRef, TouchEvent } from "react";
 import { Product } from "@/types/product";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Minus, Plus, ShoppingCart, ChevronDown, ChevronUp, Star, MessageSquare } from "lucide-react";
+import {
+  Minus, Plus, ShoppingCart, ChevronDown, ChevronUp, Star,
+  MessageSquare, Truck, Clock, Shield, ChevronLeft, ChevronRight
+} from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
 import ProductReviews from "./ProductReviews";
@@ -25,30 +28,40 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
   const [activeTab, setActiveTab] = useState("details");
   const [customMessage, setCustomMessage] = useState("");
   const [reviewStats, setReviewStats] = useState({ reviewCount: 0, averageRating: 0 });
+  const [openAccordion, setOpenAccordion] = useState<string | null>("ingredients");
   const { addToCart } = useCart();
+
+  // Touch swipe state
+  const touchStart = useRef<number>(0);
+  const touchEnd = useRef<number>(0);
 
   // Auto-slide carousel
   useEffect(() => {
     if (!product || !open) return;
     const interval = setInterval(() => {
       setCurrentImageIndex(prev => (prev + 1) % product.images.length);
-    }, 3000);
+    }, 4000);
     return () => clearInterval(interval);
   }, [product, open]);
 
-  // Reset state when product changes
+  // Reset state — set default weight to first option
   useEffect(() => {
     setCurrentImageIndex(0);
     setQuantity(1);
-    setSelectedWeight(null);
+    if (product) {
+      const opts = product.weightOptions?.length ? product.weightOptions : [{ weight: "250", price: product.price, unit: "g" }];
+      setSelectedWeight(opts[0].weight);
+    } else {
+      setSelectedWeight(null);
+    }
     setShowAllIngredients(false);
     setShowAllBenefits(false);
     setActiveTab("details");
     setCustomMessage("");
     setReviewStats({ reviewCount: 0, averageRating: 0 });
+    setOpenAccordion("ingredients");
   }, [product]);
 
-  // Fetch dynamic review stats
   useEffect(() => {
     if (!product || !open) return;
     fetchReviewStats(product.id).then(res => {
@@ -58,11 +71,7 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
 
   if (!product) return null;
 
-  // Get weight options or default to single price
-  const weightOptions = product.weightOptions || [
-    { weight: "250", price: product.price, unit: "g" }
-  ];
-
+  const weightOptions = product.weightOptions || [{ weight: "250", price: product.price, unit: "g" }];
   const currentPrice = selectedWeight
     ? weightOptions.find(w => w.weight === selectedWeight)?.price || product.price
     : product.price;
@@ -73,22 +82,41 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
     onClose();
   };
 
-  // Limit items to show initially
-  const ingredientsEnToShow = showAllIngredients ? product.ingredientsEn : product.ingredientsEn.slice(0, 3);
-  const ingredientsTaToShow = showAllIngredients ? product.ingredientsTa : product.ingredientsTa.slice(0, 3);
-  const benefitsEnToShow = showAllBenefits ? product.benefitsEn : product.benefitsEn.slice(0, 3);
-  const benefitsTaToShow = showAllBenefits ? product.benefitsTa : product.benefitsTa.slice(0, 3);
+  // Touch handlers for swipe
+  const handleTouchStart = (e: TouchEvent) => { touchStart.current = e.targetTouches[0].clientX; };
+  const handleTouchMove = (e: TouchEvent) => { touchEnd.current = e.targetTouches[0].clientX; };
+  const handleTouchEnd = () => {
+    const diff = touchStart.current - touchEnd.current;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) setCurrentImageIndex(p => (p + 1) % product.images.length);
+      else setCurrentImageIndex(p => (p - 1 + product.images.length) % product.images.length);
+    }
+  };
+
+  const ingredientsEnToShow = showAllIngredients ? product.ingredientsEn : product.ingredientsEn.slice(0, 4);
+  const ingredientsTaToShow = showAllIngredients ? product.ingredientsTa : product.ingredientsTa.slice(0, 4);
+  const benefitsEnToShow = showAllBenefits ? product.benefitsEn : product.benefitsEn.slice(0, 4);
+  const benefitsTaToShow = showAllBenefits ? product.benefitsTa : product.benefitsTa.slice(0, 4);
+
+  const toggleAccordion = (key: string) => {
+    setOpenAccordion(prev => prev === key ? null : key);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] md:max-w-[80vw] lg:max-w-[75vw] max-h-[90vh] overflow-y-auto p-4 md:p-6">
+      <DialogContent className="max-w-[95vw] md:max-w-3xl lg:max-w-4xl max-h-[92vh] overflow-y-auto p-0 rounded-2xl">
         <DialogHeader>
           <DialogTitle className="sr-only">{product.nameEn}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-4 md:gap-6 md:grid-cols-2">
-          {/* Image Carousel */}
-          <div className="relative aspect-square overflow-hidden rounded-lg bg-secondary/30">
+        <div className="grid gap-0 md:grid-cols-2">
+          {/* Image Gallery */}
+          <div
+            className="relative aspect-square overflow-hidden bg-secondary/20 md:rounded-l-2xl"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
             <div
               className="flex h-full transition-transform duration-500 ease-out"
               style={{ transform: `translateX(-${currentImageIndex * 100}%)` }}
@@ -102,255 +130,230 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
                 />
               ))}
             </div>
-            {/* Dot indicators */}
-            <div className="absolute bottom-3 md:bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5 md:gap-2">
+
+            {/* Navigation Arrows */}
+            {product.images.length > 1 && (
+              <>
+                <button
+                  onClick={() => setCurrentImageIndex(p => (p - 1 + product.images.length) % product.images.length)}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-background transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setCurrentImageIndex(p => (p + 1) % product.images.length)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-background transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </>
+            )}
+
+            {/* Dots */}
+            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
               {product.images.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
                   className={cn(
-                    "h-2 w-2 rounded-full transition-all",
-                    index === currentImageIndex
-                      ? "bg-primary w-4"
-                      : "bg-primary/40 hover:bg-primary/60"
+                    "h-2 rounded-full transition-all duration-300",
+                    index === currentImageIndex ? "bg-white w-5 shadow-md" : "bg-white/50 w-2 hover:bg-white/70"
                   )}
                 />
               ))}
             </div>
+
+            {/* Image counter */}
+            <span className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm rounded-full px-2 py-0.5 text-[10px] font-medium text-foreground shadow-sm">
+              {currentImageIndex + 1}/{product.images.length}
+            </span>
           </div>
 
           {/* Product Info */}
-          <div className="flex flex-col">
+          <div className="flex flex-col p-4 md:p-6">
             <div>
-              <h2 className="font-serif text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
-                {product.nameEn}
-              </h2>
-              <p className="mt-0.5 md:mt-1 text-base md:text-lg text-muted-foreground tamil-text">
-                {product.nameTa}
-              </p>
-              {/* Dynamic Star Rating */}
-              <div className="mt-1.5 md:mt-2">
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-foreground">{product.nameEn}</h2>
+              <p className="mt-0.5 text-sm text-muted-foreground tamil-text">{product.nameTa}</p>
+              <div className="mt-1.5">
                 <StarRating rating={reviewStats.averageRating || 0} totalReviews={reviewStats.reviewCount} size="md" />
               </div>
             </div>
 
+            {/* Description */}
+            <div className="mt-3 space-y-1">
+              <p className="text-sm text-foreground/90 leading-relaxed">{product.descriptionEn}</p>
+              <p className="text-xs text-muted-foreground/70 tamil-text">{product.descriptionTa}</p>
+            </div>
+
             {/* Weight Selection */}
-            <div className="mt-3 md:mt-4">
-              <p className="font-medium text-sm md:text-base mb-2">Select Weight / எடையை தேர்ந்தெடு:</p>
-              <div className="flex flex-wrap gap-1.5 md:gap-2">
-                {weightOptions.map((option) => {
-                  const weightKey = option.weight;
-                  return (
-                    <Button
-                      key={weightKey}
-                      variant={selectedWeight === weightKey ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedWeight(weightKey)}
-                      className="min-w-[70px] md:min-w-[80px] h-9 md:h-10 text-xs md:text-sm"
-                    >
-                      {option.weight} - ₹{option.price}
-                    </Button>
-                  );
-                })}
+            <div className="mt-4">
+              <p className="font-medium text-sm mb-2">Select Weight:</p>
+              <div className="flex flex-wrap gap-2">
+                {weightOptions.map((option) => (
+                  <Button
+                    key={option.weight}
+                    variant={selectedWeight === option.weight ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedWeight(option.weight)}
+                    className={cn(
+                      "min-w-[72px] h-9 text-xs rounded-xl transition-all",
+                      selectedWeight === option.weight && "shadow-md"
+                    )}
+                  >
+                    {option.weight}{option.unit || 'g'} · ₹{option.price}
+                  </Button>
+                ))}
               </div>
             </div>
 
-            <p className="mt-3 md:mt-4 text-2xl md:text-3xl font-bold text-primary">
-              ₹{selectedWeight ? currentPrice : product.price}
-              {!selectedWeight && <span className="text-xs md:text-sm font-normal text-muted-foreground ml-2">(select weight)</span>}
-            </p>
-
-            <div className="mt-3 md:mt-4 space-y-1.5 md:space-y-2">
-              <p className="text-sm md:text-base text-foreground">{product.descriptionEn}</p>
-              <p className="text-xs md:text-sm text-muted-foreground tamil-text">{product.descriptionTa}</p>
+            {/* Price */}
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-primary">₹{currentPrice * quantity}</span>
+              {quantity > 1 && <span className="text-xs text-muted-foreground">(₹{currentPrice} × {quantity})</span>}
             </div>
 
-            {/* Quantity Selector */}
-            <div className="mt-4 md:mt-6 flex items-center gap-3 md:gap-4">
-              <span className="font-medium text-sm md:text-base">Quantity:</span>
-              <div className="flex items-center bg-secondary rounded-lg">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 md:h-11 md:w-11 rounded-r-none"
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                >
-                  <Minus className="h-4 w-4" />
+            {/* Quantity */}
+            <div className="mt-4 flex items-center gap-3">
+              <span className="text-sm font-medium">Qty:</span>
+              <div className="flex items-center bg-secondary rounded-xl overflow-hidden">
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-none" onClick={() => setQuantity(q => Math.max(1, q - 1))}>
+                  <Minus className="h-3.5 w-3.5" />
                 </Button>
-                <span className="w-10 md:w-12 text-center text-base md:text-lg font-semibold">{quantity}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 md:h-11 md:w-11 rounded-l-none"
-                  onClick={() => setQuantity(q => q + 1)}
-                >
-                  <Plus className="h-4 w-4" />
+                <span className="w-9 text-center text-sm font-semibold">{quantity}</span>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-none" onClick={() => setQuantity(q => q + 1)}>
+                  <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
 
             {/* Custom Instructions */}
-            <div className="mt-4">
-              <label className="text-sm font-medium text-foreground">Custom Instructions (Optional) / விருப்ப குறிப்பு:</label>
+            <div className="mt-3">
+              <label className="text-xs font-medium text-muted-foreground">Custom Instructions (Optional):</label>
               <textarea
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
-                placeholder="e.g. Less sugar, Make it spicy, Birthday gift packing..."
-                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                placeholder="e.g. Less sugar, spicy, gift packing..."
+                className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 input-glow resize-none transition-all"
                 rows={2}
                 maxLength={200}
               />
-              {customMessage && (
-                <p className="text-xs text-muted-foreground mt-1">{customMessage.length}/200</p>
-              )}
             </div>
 
-            {/* Add to Cart Button */}
+            {/* Add to Cart */}
             <Button
               size="lg"
-              className="mt-4 md:mt-6 gap-2 h-11 md:h-12 text-sm md:text-base"
+              className="mt-4 gap-2 h-11 text-sm rounded-xl btn-lift ripple"
               onClick={handleAddToCart}
               disabled={!selectedWeight}
             >
-              <ShoppingCart className="h-4 w-4 md:h-5 md:w-5" />
-              <span>Add to Cart</span>
-              <span className="tamil-text text-xs md:text-sm hidden sm:inline">கார்ட்டில் சேர்</span>
+              <ShoppingCart className="h-4 w-4" />
+              Add to Cart — ₹{currentPrice * quantity}
             </Button>
-            {!selectedWeight && (
-              <p className="text-xs md:text-sm text-destructive mt-2">Please select a weight option</p>
-            )}
+
+            {/* Delivery Info Strip */}
+            <div className="mt-4 flex items-center gap-4 text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1"><Truck className="h-3 w-3" /> Free delivery ₹500+</span>
+              <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> 2-3 days</span>
+              <span className="flex items-center gap-1"><Shield className="h-3 w-3" /> 100% Fresh</span>
+            </div>
           </div>
         </div>
 
-        {/* Tabs for Details and Reviews */}
-        <div className="mt-6 md:mt-8 border-t pt-4 md:pt-6">
+        {/* Tabs: Details & Reviews */}
+        <div className="border-t px-4 md:px-6 pt-4 pb-4 md:pb-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 h-10 md:h-11">
-              <TabsTrigger value="details" className="gap-1.5 md:gap-2 text-xs md:text-sm">
-                <Star className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                Details
+            <TabsList className="grid w-full grid-cols-2 h-10 rounded-xl">
+              <TabsTrigger value="details" className="gap-1.5 text-xs rounded-xl">
+                <Star className="h-3.5 w-3.5" /> Details
               </TabsTrigger>
-              <TabsTrigger value="reviews" className="gap-1.5 md:gap-2 text-xs md:text-sm">
-                <MessageSquare className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                Reviews
+              <TabsTrigger value="reviews" className="gap-1.5 text-xs rounded-xl">
+                <MessageSquare className="h-3.5 w-3.5" /> Reviews
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="details" className="mt-4 md:mt-6 animate-fade-in">
-              <h3 className="mb-4 md:mb-6 text-center font-serif text-lg md:text-xl font-bold">
-                Ingredients & Benefits
-              </h3>
+            <TabsContent value="details" className="mt-4 animate-fade-in space-y-2">
+              {/* Accordion: Ingredients */}
+              <div className="rounded-xl border border-border overflow-hidden">
+                <button
+                  onClick={() => toggleAccordion("ingredients")}
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold hover:bg-secondary/30 transition-colors"
+                >
+                  <span>🌾 Ingredients / பொருட்கள்</span>
+                  <ChevronDown className={cn("h-4 w-4 transition-transform", openAccordion === "ingredients" && "rotate-180")} />
+                </button>
+                {openAccordion === "ingredients" && (
+                  <div className="px-4 pb-3 animate-fade-in">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <ul className="list-disc list-inside text-muted-foreground text-xs space-y-0.5">
+                        {ingredientsEnToShow.map((ing, i) => <li key={i}>{ing}</li>)}
+                      </ul>
+                      <ul className="list-disc list-inside text-muted-foreground text-xs tamil-text space-y-0.5">
+                        {ingredientsTaToShow.map((ing, i) => <li key={i}>{ing}</li>)}
+                      </ul>
+                    </div>
+                    {product.ingredientsEn.length > 4 && (
+                      <Button variant="ghost" size="sm" className="mt-1 p-0 h-auto text-xs" onClick={() => setShowAllIngredients(!showAllIngredients)}>
+                        {showAllIngredients ? "Show Less" : `View All (${product.ingredientsEn.length})`}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
 
-              <div className="grid gap-4 md:gap-6 md:grid-cols-2">
-                {/* English Column */}
-                <div className="space-y-3 md:space-y-4">
-                  <div className="rounded-lg bg-secondary/50 p-3 md:p-4">
-                    <h4 className="font-semibold text-foreground text-sm md:text-base">Ingredients</h4>
-                    <ul className="mt-2 list-disc list-inside text-muted-foreground text-xs md:text-sm space-y-0.5">
-                      {ingredientsEnToShow.map((ing, i) => (
-                        <li key={i}>{ing}</li>
-                      ))}
-                    </ul>
-                    {product.ingredientsEn.length > 3 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2 p-0 h-auto text-xs md:text-sm"
-                        onClick={() => setShowAllIngredients(!showAllIngredients)}
-                      >
-                        {showAllIngredients ? (
-                          <>Show Less <ChevronUp className="h-3 w-3 md:h-4 md:w-4 ml-1" /></>
-                        ) : (
-                          <>View More ({product.ingredientsEn.length - 3}) <ChevronDown className="h-3 w-3 md:h-4 md:w-4 ml-1" /></>
-                        )}
+              {/* Accordion: Benefits */}
+              <div className="rounded-xl border border-border overflow-hidden">
+                <button
+                  onClick={() => toggleAccordion("benefits")}
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold hover:bg-secondary/30 transition-colors"
+                >
+                  <span>💚 Health Benefits / நன்மைகள்</span>
+                  <ChevronDown className={cn("h-4 w-4 transition-transform", openAccordion === "benefits" && "rotate-180")} />
+                </button>
+                {openAccordion === "benefits" && (
+                  <div className="px-4 pb-3 animate-fade-in">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <ul className="list-disc list-inside text-muted-foreground text-xs space-y-0.5">
+                        {benefitsEnToShow.map((b, i) => <li key={i}>{b}</li>)}
+                      </ul>
+                      <ul className="list-disc list-inside text-muted-foreground text-xs tamil-text space-y-0.5">
+                        {benefitsTaToShow.map((b, i) => <li key={i}>{b}</li>)}
+                      </ul>
+                    </div>
+                    {product.benefitsEn.length > 4 && (
+                      <Button variant="ghost" size="sm" className="mt-1 p-0 h-auto text-xs" onClick={() => setShowAllBenefits(!showAllBenefits)}>
+                        {showAllBenefits ? "Show Less" : `View All (${product.benefitsEn.length})`}
                       </Button>
                     )}
                   </div>
-                  <div className="rounded-lg bg-success/10 p-3 md:p-4">
-                    <h4 className="font-semibold text-success text-sm md:text-base">Health Benefits</h4>
-                    <ul className="mt-2 list-disc list-inside text-muted-foreground text-xs md:text-sm space-y-0.5">
-                      {benefitsEnToShow.map((ben, i) => (
-                        <li key={i}>{ben}</li>
-                      ))}
-                    </ul>
-                    {product.benefitsEn.length > 3 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2 p-0 h-auto text-xs md:text-sm"
-                        onClick={() => setShowAllBenefits(!showAllBenefits)}
-                      >
-                        {showAllBenefits ? (
-                          <>Show Less <ChevronUp className="h-3 w-3 md:h-4 md:w-4 ml-1" /></>
-                        ) : (
-                          <>View More ({product.benefitsEn.length - 3}) <ChevronDown className="h-3 w-3 md:h-4 md:w-4 ml-1" /></>
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                  <div className="rounded-lg bg-gold/10 p-3 md:p-4">
-                    <h4 className="font-semibold text-gold-foreground text-sm md:text-base">Storage & Shelf Life</h4>
-                    <p className="mt-2 text-muted-foreground text-xs md:text-sm">{product.storageEn}</p>
-                    <p className="mt-1 text-muted-foreground text-xs md:text-sm">
-                      <strong>Shelf Life:</strong> {product.shelfLife}
-                    </p>
-                  </div>
-                </div>
+                )}
+              </div>
 
-                {/* Tamil Column */}
-                <div className="space-y-3 md:space-y-4 tamil-text">
-                  <div className="rounded-lg bg-secondary/50 p-3 md:p-4">
-                    <h4 className="font-semibold text-foreground text-sm md:text-base">பொருட்கள்</h4>
-                    <ul className="mt-2 list-disc list-inside text-muted-foreground text-xs md:text-sm space-y-0.5">
-                      {ingredientsTaToShow.map((ing, i) => (
-                        <li key={i}>{ing}</li>
-                      ))}
-                    </ul>
-                    {product.ingredientsTa.length > 3 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2 p-0 h-auto text-xs md:text-sm"
-                        onClick={() => setShowAllIngredients(!showAllIngredients)}
-                      >
-                        {showAllIngredients ? "குறைவாக காட்டு" : `மேலும் (${product.ingredientsTa.length - 3})`}
-                      </Button>
-                    )}
+              {/* Accordion: Storage */}
+              <div className="rounded-xl border border-border overflow-hidden">
+                <button
+                  onClick={() => toggleAccordion("storage")}
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold hover:bg-secondary/30 transition-colors"
+                >
+                  <span>📦 Storage & Shelf Life / சேமிப்பு</span>
+                  <ChevronDown className={cn("h-4 w-4 transition-transform", openAccordion === "storage" && "rotate-180")} />
+                </button>
+                {openAccordion === "storage" && (
+                  <div className="px-4 pb-3 animate-fade-in grid gap-2 md:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{product.storageEn}</p>
+                      <p className="text-xs text-muted-foreground mt-1"><strong>Shelf Life:</strong> {product.shelfLife}</p>
+                    </div>
+                    <div className="tamil-text">
+                      <p className="text-xs text-muted-foreground">{product.storageTa}</p>
+                      <p className="text-xs text-muted-foreground mt-1"><strong>ஆயுள்:</strong> {product.shelfLife}</p>
+                    </div>
                   </div>
-                  <div className="rounded-lg bg-success/10 p-3 md:p-4">
-                    <h4 className="font-semibold text-success text-sm md:text-base">ஆரோக்கிய நன்மைகள்</h4>
-                    <ul className="mt-2 list-disc list-inside text-muted-foreground text-xs md:text-sm space-y-0.5">
-                      {benefitsTaToShow.map((ben, i) => (
-                        <li key={i}>{ben}</li>
-                      ))}
-                    </ul>
-                    {product.benefitsTa.length > 3 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2 p-0 h-auto text-xs md:text-sm"
-                        onClick={() => setShowAllBenefits(!showAllBenefits)}
-                      >
-                        {showAllBenefits ? "குறைவாக காட்டு" : `மேலும் (${product.benefitsTa.length - 3})`}
-                      </Button>
-                    )}
-                  </div>
-                  <div className="rounded-lg bg-gold/10 p-3 md:p-4">
-                    <h4 className="font-semibold text-gold-foreground text-sm md:text-base">சேமிப்பு & ஆயுள்</h4>
-                    <p className="mt-2 text-muted-foreground text-xs md:text-sm">{product.storageTa}</p>
-                    <p className="mt-1 text-muted-foreground text-xs md:text-sm">
-                      <strong>ஆயுள்:</strong> {product.shelfLife}
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
             </TabsContent>
 
-            <TabsContent value="reviews" className="mt-4 md:mt-6 animate-fade-in">
-              <ProductReviews
-                productId={product.id}
-                productName={product.nameEn}
-              />
+            <TabsContent value="reviews" className="mt-4 animate-fade-in">
+              <ProductReviews productId={product.id} productName={product.nameEn} />
             </TabsContent>
           </Tabs>
         </div>

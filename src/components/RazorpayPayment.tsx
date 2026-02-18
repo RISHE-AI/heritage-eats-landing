@@ -123,21 +123,21 @@ const RazorpayPayment: React.FC<RazorpayPaymentProps> = ({
   };
 
   return (
-    <Card className="shadow-card overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
-        <CardTitle className="font-serif flex items-center gap-2">
-          <Shield className="h-5 w-5 text-success" />
+    <Card className="shadow-card overflow-hidden rounded-2xl">
+      <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10 px-4 sm:px-6">
+        <CardTitle className="font-serif flex items-center gap-2 text-base sm:text-lg">
+          <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
           Secure Payment
-          <span className="block text-lg font-normal text-muted-foreground tamil-text ml-auto">
+          <span className="text-xs sm:text-sm font-normal text-muted-foreground tamil-text ml-auto">
             பாதுகாப்பான பணம்
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6 space-y-6">
+      <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Amount Display */}
-        <div className="text-center p-4 bg-secondary/50 rounded-xl">
-          <p className="text-sm text-muted-foreground">Amount to Pay</p>
-          <p className="text-4xl font-bold text-primary mt-1">₹{amount}</p>
+        <div className="text-center p-3 sm:p-4 bg-secondary/50 rounded-xl">
+          <p className="text-xs sm:text-sm text-muted-foreground">Amount to Pay</p>
+          <p className="text-3xl sm:text-4xl font-bold text-primary mt-1">₹{amount}</p>
         </div>
 
         {/* Payment Info */}
@@ -165,8 +165,9 @@ const RazorpayPayment: React.FC<RazorpayPaymentProps> = ({
           ) : (
             <>
               <CreditCard className="h-5 w-5" />
-              Pay ₹{amount} with Razorpay
-              <span className="text-sm tamil-text font-normal">பணம் செலுத்து</span>
+              <span className="hidden sm:inline">Pay ₹{amount} with Razorpay</span>
+              <span className="sm:hidden">Pay ₹{amount}</span>
+              <span className="text-xs sm:text-sm tamil-text font-normal">பணம் செலுத்து</span>
             </>
           )}
         </Button>

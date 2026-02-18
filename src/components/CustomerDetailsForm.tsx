@@ -20,14 +20,14 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user, savedCustomerDetails, saveCustomerDetails } = useAuth();
-  
+
   const [formData, setFormData] = useState<CustomerDetails>({
     name: "",
     phone: "",
     email: "",
     address: ""
   });
-  
+
   const [saveDetails, setSaveDetails] = useState(true);
   const [errors, setErrors] = useState<Partial<CustomerDetails>>({});
 
@@ -77,7 +77,7 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     const cleanedDetails: CustomerDetails = {
@@ -96,7 +96,7 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
   };
 
   return (
-    <Card className="shadow-card">
+    <Card className="shadow-card rounded-2xl overflow-hidden">
       <CardHeader>
         <CardTitle className="font-serif">
           Customer Details
@@ -108,8 +108,8 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
           <div className="flex items-center gap-2 mt-2 p-3 bg-primary/10 rounded-lg">
             <LogIn className="h-4 w-4 text-primary" />
             <span className="text-sm">
-              <button 
-                onClick={() => navigate("/auth")} 
+              <button
+                onClick={() => navigate("/auth")}
                 className="text-primary font-medium hover:underline"
               >
                 Login
@@ -234,11 +234,12 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
             </Label>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full mt-4" 
+          <Button
+            type="submit"
+            className="w-full mt-4 rounded-xl btn-lift"
             size="lg"
             disabled={isSubmitting}
+            aria-label="Proceed to payment"
           >
             {isSubmitting ? "Processing..." : "Proceed to Payment / பணம் செலுத்த தொடரவும்"}
           </Button>

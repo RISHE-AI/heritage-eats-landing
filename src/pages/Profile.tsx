@@ -2,89 +2,67 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import MobileBottomNav from "@/components/MobileBottomNav";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { User, Settings, LogOut, ArrowLeft, Loader2, MapPin, Phone as PhoneIcon, Edit2, Check, X, ShoppingBag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { 
-  User, Phone, Mail, MapPin, ArrowLeft, LogOut, 
-  Edit2, Save, X, Loader2, CheckCircle 
-} from "lucide-react";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useThemeColor, type ThemeColor } from "@/components/ThemeProvider";
+
+const THEME_COLORS: { value: ThemeColor; label: string; colorClass: string }[] = [
+  { value: "warm-red", label: "Warm Red", colorClass: "bg-red-700" },
+  { value: "royal-purple", label: "Royal Purple", colorClass: "bg-purple-700" },
+  { value: "forest-green", label: "Forest Green", colorClass: "bg-emerald-700" },
+  { value: "saffron-orange", label: "Saffron Orange", colorClass: "bg-orange-500" },
+  { value: "deep-blue", label: "Deep Blue", colorClass: "bg-blue-700" },
+];
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateProfile, logout, isLoading } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    address: ""
-  });
+  const { user, logout, isLoading, updateProfile } = useAuth();
+  const { themeColor, setThemeColor } = useThemeColor();
+  const [activeTab, setActiveTab] = useState("profile");
 
-  // Redirect if not logged in
+  // Edit profile state
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
-    if (!user && !isLoading) {
-      navigate("/auth");
-    }
+    if (!isLoading && !user) navigate("/auth");
   }, [user, isLoading, navigate]);
 
-  // Initialize form with user data
   useEffect(() => {
     if (user) {
-      setFormData({
-        name: user.name || "",
-        phone: user.phone || "",
-        email: user.email || "",
-        address: user.address || ""
-      });
+      setEditName(user.name || "");
+      setEditAddress(user.address || "");
     }
   }, [user]);
+
+  const handleSave = async () => {
+    if (!editName.trim()) { toast.error("Name is required"); return; }
+    setSaving(true);
+    try {
+      if (updateProfile) {
+        await updateProfile({ name: editName.trim(), address: editAddress.trim() });
+      }
+      setEditing(false);
+      toast.success("Profile updated!");
+    } catch (err) {
+      toast.error("Failed to update profile");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
     navigate("/");
-  };
-
-  const handleSave = async () => {
-    if (!formData.name.trim()) {
-      toast.error("Name is required");
-      return;
-    }
-
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-
-    setSaving(true);
-    const success = await updateProfile({
-      name: formData.name.trim(),
-      email: formData.email.trim() || undefined,
-      address: formData.address.trim() || undefined
-    });
-    setSaving(false);
-
-    if (success) {
-      setIsEditing(false);
-    }
-  };
-
-  const handleCancel = () => {
-    if (user) {
-      setFormData({
-        name: user.name || "",
-        phone: user.phone || "",
-        email: user.email || "",
-        address: user.address || ""
-      });
-    }
-    setIsEditing(false);
   };
 
   if (isLoading || !user) {
@@ -95,165 +73,147 @@ const Profile: React.FC = () => {
     );
   }
 
+  const initials = user.name ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "U";
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background page-enter pb-safe-bottom">
       <Header />
-      <div className="container px-4 py-8 md:py-12">
-        <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" onClick={() => navigate("/")}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Home
-          </Button>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+      <div className="container px-4 py-6 md:py-10 max-w-2xl mx-auto">
+        {/* Back */}
+        <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="mb-5 gap-1.5 text-xs">
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to Home
+        </Button>
+
+        {/* Profile Header */}
+        <div className="text-center mb-6 animate-fade-in">
+          <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto text-xl font-bold shadow-lg">
+            {initials}
+          </div>
+          <h1 className="font-serif text-lg font-bold mt-3">{user.name || "User"}</h1>
+          <p className="text-xs text-muted-foreground flex items-center gap-1 justify-center mt-0.5">
+            <PhoneIcon className="h-3 w-3" /> {user.phone}
+          </p>
         </div>
 
-        <div className="max-w-2xl mx-auto space-y-6">
-          {/* Profile Card */}
-          <Card className="shadow-card">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="font-serif text-2xl flex items-center gap-2">
-                    <User className="h-6 w-6 text-primary" />
-                    My Profile
-                    <span className="block text-lg font-normal text-muted-foreground tamil-text ml-2">
-                      என் சுயவிவரம்
-                    </span>
-                  </CardTitle>
-                  <CardDescription className="mt-2">
-                    Manage your account details for faster checkout
-                  </CardDescription>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-3 h-10 rounded-xl mb-4">
+            <TabsTrigger value="profile" className="text-xs rounded-xl gap-1">
+              <User className="h-3.5 w-3.5" /> Profile
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="text-xs rounded-xl gap-1">
+              <ShoppingBag className="h-3.5 w-3.5" /> Orders
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs rounded-xl gap-1">
+              <Settings className="h-3.5 w-3.5" /> Settings
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Profile Tab */}
+          <TabsContent value="profile" className="animate-fade-in">
+            <Card className="rounded-2xl shadow-card">
+              <CardContent className="p-4 md:p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-sm">Personal Information</h3>
+                  {!editing ? (
+                    <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="gap-1 text-xs">
+                      <Edit2 className="h-3.5 w-3.5" /> Edit
+                    </Button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1 text-xs h-8 rounded-lg">
+                        {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                        Save
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => { setEditing(false); setEditName(user.name || ""); setEditAddress(user.address || ""); }} className="text-xs h-8">
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                {!isEditing && (
-                  <Button variant="outline" onClick={() => setIsEditing(true)}>
-                    <Edit2 className="mr-2 h-4 w-4" />
-                    Edit
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Name */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-muted-foreground">
-                  <User className="h-4 w-4" />
-                  Full Name / முழு பெயர்
-                </Label>
-                {isEditing ? (
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Enter your full name"
-                    maxLength={100}
-                  />
-                ) : (
-                  <p className="text-lg font-medium">{user.name}</p>
-                )}
-              </div>
 
-              {/* Phone */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  Phone Number / தொலைபேசி எண்
-                </Label>
-                <p className="text-lg font-medium flex items-center gap-2">
-                  {user.phone}
-                  <CheckCircle className="h-4 w-4 text-success" />
-                  <span className="text-xs text-muted-foreground">(Verified)</span>
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Phone number cannot be changed
-                </p>
-              </div>
-
-              {/* Email */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-muted-foreground">
-                  <Mail className="h-4 w-4" />
-                  Email Address / மின்னஞ்சல் (Optional)
-                </Label>
-                {isEditing ? (
-                  <Input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="Enter your email address"
-                    maxLength={255}
-                  />
-                ) : (
-                  <p className="text-lg">{user.email || <span className="text-muted-foreground">Not provided</span>}</p>
-                )}
-              </div>
-
-              {/* Address */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  Delivery Address / டெலிவரி முகவரி
-                </Label>
-                {isEditing ? (
-                  <Textarea
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="Enter your full delivery address including pincode"
-                    rows={3}
-                    maxLength={500}
-                  />
-                ) : (
-                  <p className="text-lg whitespace-pre-wrap">
-                    {user.address || <span className="text-muted-foreground">Not provided</span>}
-                  </p>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              {isEditing && (
-                <div className="flex gap-3 pt-4 border-t">
-                  <Button onClick={handleSave} disabled={saving} className="flex-1">
-                    {saving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Name</Label>
+                    {editing ? (
+                      <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="rounded-xl input-glow" />
                     ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save Changes / சேமி
-                      </>
+                      <p className="text-sm font-medium">{user.name || "Not set"}</p>
                     )}
-                  </Button>
-                  <Button variant="outline" onClick={handleCancel} disabled={saving}>
-                    <X className="mr-2 h-4 w-4" />
-                    Cancel
-                  </Button>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Phone</Label>
+                    <p className="text-sm font-medium">{user.phone}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> Address
+                    </Label>
+                    {editing ? (
+                      <Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="Enter your delivery address" className="rounded-xl input-glow" />
+                    ) : (
+                      <p className="text-sm">{user.address || "Not set"}</p>
+                    )}
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          {/* Info Card */}
-          <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="pt-6">
-              <div className="flex gap-3">
-                <CheckCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Save your details for faster checkout!</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Your saved address will be automatically filled during checkout.
-                    <span className="block tamil-text text-xs mt-1">
-                      உங்கள் சேமித்த முகவரி செக்அவுட்டின் போது தானாக நிரப்பப்படும்.
-                    </span>
-                  </p>
+          {/* Orders Tab */}
+          <TabsContent value="orders" className="animate-fade-in">
+            <Card className="rounded-2xl shadow-card">
+              <CardContent className="p-5 text-center">
+                <div className="w-12 h-12 mx-auto rounded-xl bg-secondary flex items-center justify-center mb-3">
+                  <ShoppingBag className="h-6 w-6 text-muted-foreground" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                <p className="text-sm text-muted-foreground mb-3">Order history will appear here after your first purchase.</p>
+                <Button variant="outline" size="sm" onClick={() => navigate("/")} className="rounded-xl gap-1.5 text-xs">
+                  <ShoppingBag className="h-3.5 w-3.5" /> Browse Products
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="animate-fade-in space-y-4">
+            {/* Theme Settings */}
+            <Card className="rounded-2xl shadow-card">
+              <CardContent className="p-4 md:p-5">
+                <h3 className="font-semibold text-sm mb-3">Theme Preferences</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Dark / Light Mode</span>
+                    <ThemeToggle />
+                  </div>
+                  <div>
+                    <span className="text-sm text-muted-foreground block mb-2">Accent Color</span>
+                    <div className="flex items-center gap-2">
+                      {THEME_COLORS.map((tc) => (
+                        <button
+                          key={tc.value}
+                          onClick={() => setThemeColor(tc.value)}
+                          className={`h-8 w-8 rounded-full transition-all duration-200 hover:scale-110 ${tc.colorClass} ${themeColor === tc.value
+                            ? "ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110"
+                            : "opacity-60 hover:opacity-100"
+                            }`}
+                          title={tc.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Logout */}
+            <Button variant="outline" className="w-full rounded-xl border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground gap-2" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" /> Logout
+            </Button>
+          </TabsContent>
+        </Tabs>
       </div>
+      <MobileBottomNav />
     </div>
   );
 };

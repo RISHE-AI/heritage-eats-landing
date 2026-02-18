@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
-import { Product } from "@/types/product";
+import { Product, transformProduct } from "@/types/product";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchWishlistAPI, addToWishlistAPI, removeFromWishlistAPI, syncWishlistAPI } from "@/services/api";

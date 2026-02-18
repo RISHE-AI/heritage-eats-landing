@@ -10,6 +10,7 @@ import Footer from "@/components/Footer";
 import Chatbot from "@/components/Chatbot";
 import ScrollToTop from "@/components/ScrollToTop";
 import RecentlyViewedSection from "@/components/RecentlyViewedSection";
+import MobileBottomNav from "@/components/MobileBottomNav";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -51,6 +52,12 @@ const Index: React.FC = () => {
   const malts = getByCategory("malts");
   const podi = getByCategory("podi");
 
+  // Best sellers: top sold products
+  const bestSellers = [...products]
+    .filter(p => p.available !== false)
+    .sort((a, b) => (b.totalSold || 0) - (a.totalSold || 0))
+    .slice(0, 8);
+
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     setModalOpen(true);
@@ -63,37 +70,56 @@ const Index: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background page-enter pb-safe-bottom">
       <Header />
       <main>
         <Hero />
 
         {loading ? (
-          <div className="container px-4 py-16 space-y-8">
+          <div className="container px-4 py-12 space-y-6">
             <div className="text-center">
               <div className="inline-flex items-center gap-2 text-muted-foreground">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <span>Loading products...</span>
+                <span className="text-sm">Loading products...</span>
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {[...Array(8)].map((_, i) => (
-                <Skeleton key={i} className="h-64 w-full rounded-xl" />
+                <div key={i} className="space-y-3">
+                  <Skeleton className="aspect-[4/3] w-full rounded-2xl" />
+                  <Skeleton className="h-4 w-3/4 rounded-lg" />
+                  <Skeleton className="h-4 w-1/2 rounded-lg" />
+                  <Skeleton className="h-9 w-full rounded-xl" />
+                </div>
               ))}
             </div>
           </div>
         ) : error ? (
           <div className="container px-4 py-16 text-center">
-            <p className="text-red-500 mb-4">{error}</p>
+            <p className="text-destructive mb-4">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-primary text-white rounded-lg"
+              className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium btn-lift"
             >
               Retry
             </button>
           </div>
         ) : (
           <>
+            {/* Best Sellers */}
+            {bestSellers.length > 0 && (
+              <>
+                <ProductSection
+                  id="best-sellers"
+                  titleEn="Best Sellers"
+                  titleTa="சிறந்த விற்பனையாளர்கள்"
+                  products={bestSellers}
+                  onProductClick={handleProductClick}
+                />
+                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+              </>
+            )}
+
             <ProductSection
               id="sweets"
               titleEn="Sweets"
@@ -101,7 +127,6 @@ const Index: React.FC = () => {
               products={sweets}
               onProductClick={handleProductClick}
             />
-
             <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
             <ProductSection
@@ -111,7 +136,6 @@ const Index: React.FC = () => {
               products={snacks}
               onProductClick={handleProductClick}
             />
-
             <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
             <ProductSection
@@ -122,10 +146,9 @@ const Index: React.FC = () => {
               onProductClick={handleProductClick}
             />
 
-            <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-
             {malts.length > 0 && (
               <>
+                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
                 <ProductSection
                   id="malts"
                   titleEn="Health Malts"
@@ -133,12 +156,12 @@ const Index: React.FC = () => {
                   products={malts}
                   onProductClick={handleProductClick}
                 />
-                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
               </>
             )}
 
             {podi.length > 0 && (
               <>
+                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
                 <ProductSection
                   id="podi"
                   titleEn="Traditional Podi"
@@ -146,13 +169,11 @@ const Index: React.FC = () => {
                   products={podi}
                   onProductClick={handleProductClick}
                 />
-                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
               </>
             )}
           </>
         )}
 
-        {/* Recently Viewed Section */}
         <RecentlyViewedSection
           products={recentlyViewed}
           onProductClick={handleProductClick}
@@ -165,6 +186,7 @@ const Index: React.FC = () => {
       <Footer />
       <ScrollToTop />
       <Chatbot />
+      <MobileBottomNav />
 
       <ProductModal
         product={selectedProduct}

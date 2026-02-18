@@ -1,77 +1,97 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import { Phone, Mail, MapPin, Package } from "lucide-react";
+import { Phone, Mail, MapPin, Heart } from "lucide-react";
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-foreground text-background py-8 md:py-12">
-      <div className="container px-4 md:px-8">
-        <div className="grid gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+    <footer className="bg-foreground text-background pb-safe-bottom">
+      {/* Main Footer */}
+      <div className="container px-4 md:px-8 py-10 md:py-14">
+        <div className="grid gap-8 md:gap-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {/* Brand */}
           <div className="text-center sm:text-left">
-            <h3 className="font-serif text-xl md:text-2xl font-bold">Homemade Delights</h3>
-            <p className="mt-1 text-xs md:text-sm text-background/70 tamil-text">வீட்டு சமையல் சுவைகள்</p>
-            <p className="mt-3 md:mt-4 text-sm md:text-base text-background/80">
-              Bringing traditional homemade snacks and sweets to your doorstep.
+            <div className="flex items-center gap-2 justify-center sm:justify-start mb-3">
+              <span className="text-2xl">🍯</span>
+              <div>
+                <h3 className="font-serif text-xl md:text-2xl font-bold">Maghizam</h3>
+                <p className="text-[10px] md:text-xs text-background/60 -mt-0.5">Homemade Delights</p>
+              </div>
+            </div>
+            <p className="text-sm md:text-base text-background/75 leading-relaxed">
+              Bringing traditional homemade snacks and sweets to your doorstep with authentic Tamil flavors.
             </p>
-            <p className="mt-1.5 md:mt-2 text-xs md:text-sm text-background/60 tamil-text">
+            <p className="mt-1.5 text-xs text-background/50 tamil-text">
               பாரம்பரிய வீட்டு தின்பண்டங்களை உங்கள் வீட்டிற்கு கொண்டு வருகிறோம்.
             </p>
           </div>
 
-          {/* Contact Info */}
+          {/* Contact */}
           <div className="text-center sm:text-left">
-            <h4 className="font-semibold text-base md:text-lg mb-3 md:mb-4">
-              Contact Us / தொடர்பு கொள்ள
+            <h4 className="font-semibold text-base md:text-lg mb-4">
+              Contact Us
+              <span className="text-xs text-background/50 tamil-text ml-2">தொடர்பு கொள்ள</span>
             </h4>
-            <div className="space-y-2.5 md:space-y-3">
-              <div className="flex items-center gap-3 justify-center sm:justify-start">
-                <Phone className="h-4 w-4 md:h-5 md:w-5 text-gold shrink-0" />
-                <span className="text-sm md:text-base">+91 97511 88414</span>
-              </div>
-              <div className="flex items-center gap-3 justify-center sm:justify-start">
-                <Mail className="h-4 w-4 md:h-5 md:w-5 text-gold shrink-0" />
-                <span className="text-xs md:text-sm break-all">contact.tdhms@gmail.com</span>
-              </div>
+            <div className="space-y-3">
+              <a href="tel:+919751188414" className="flex items-center gap-3 justify-center sm:justify-start group">
+                <div className="w-8 h-8 rounded-lg bg-background/10 flex items-center justify-center group-hover:bg-gold/20 transition-colors">
+                  <Phone className="h-4 w-4 text-gold" />
+                </div>
+                <span className="text-sm text-background/80 group-hover:text-gold transition-colors">+91 97511 88414</span>
+              </a>
+              <a href="mailto:contact.tdhms@gmail.com" className="flex items-center gap-3 justify-center sm:justify-start group">
+                <div className="w-8 h-8 rounded-lg bg-background/10 flex items-center justify-center group-hover:bg-gold/20 transition-colors">
+                  <Mail className="h-4 w-4 text-gold" />
+                </div>
+                <span className="text-xs md:text-sm text-background/80 group-hover:text-gold transition-colors break-all">contact.tdhms@gmail.com</span>
+              </a>
               <div className="flex items-start gap-3 justify-center sm:justify-start">
-                <MapPin className="h-4 w-4 md:h-5 md:w-5 text-gold shrink-0 mt-0.5" />
-                <span className="text-sm md:text-base">Vaiyappamalai, Namakkal-637410, Tamil Nadu, India</span>
+                <div className="w-8 h-8 rounded-lg bg-background/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <MapPin className="h-4 w-4 text-gold" />
+                </div>
+                <span className="text-sm text-background/80">Vaiyappamalai, Namakkal-637410, Tamil Nadu</span>
               </div>
             </div>
           </div>
 
           {/* Quick Links */}
           <div className="text-center sm:text-left sm:col-span-2 lg:col-span-1">
-            <h4 className="font-semibold text-base md:text-lg mb-3 md:mb-4">
-              Quick Links / விரைவு இணைப்புகள்
+            <h4 className="font-semibold text-base md:text-lg mb-4">
+              Quick Links
+              <span className="text-xs text-background/50 tamil-text ml-2">விரைவு இணைப்புகள்</span>
             </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-1 gap-1.5 md:gap-2">
-              <a href="#sweets" className="block text-sm md:text-base text-background/80 hover:text-gold transition-colors py-1">
-                Sweets / இனிப்புகள்
-              </a>
-              <a href="#snacks" className="block text-sm md:text-base text-background/80 hover:text-gold transition-colors py-1">
-                Snacks / தின்பண்டங்கள்
-              </a>
-              <a href="#pickles" className="block text-sm md:text-base text-background/80 hover:text-gold transition-colors py-1">
-                Pickles / ஊறுகாய்
-              </a>
-              <a href="#feedback" className="block text-sm md:text-base text-background/80 hover:text-gold transition-colors py-1">
-                Reviews / மதிப்புரைகள்
-              </a>
-              <Link 
-                to="/track-order" 
-                className="flex items-center gap-1.5 text-sm md:text-base text-background/80 hover:text-gold transition-colors py-1"
-              >
-                <Package className="h-4 w-4" />
-                Track Order / ஆர்டர் கண்காணி
-              </Link>
+            <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
+              {[
+                { href: "#sweets", label: "Sweets", ta: "இனிப்புகள்" },
+                { href: "#snacks", label: "Snacks", ta: "தின்பண்டங்கள்" },
+                { href: "#pickles", label: "Pickles", ta: "ஊறுகாய்" },
+                { href: "#feedback", label: "Reviews", ta: "மதிப்புரைகள்" },
+              ].map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="flex items-center gap-2 text-sm text-background/75 hover:text-gold transition-colors py-1.5 justify-center sm:justify-start"
+                >
+                  <span className="w-1 h-1 rounded-full bg-gold/50" />
+                  {link.label}
+                  <span className="text-[10px] text-background/40 tamil-text">{link.ta}</span>
+                </a>
+              ))}
+
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-background/20 text-center text-xs md:text-sm text-background/60">
-          <p>© 2024 Homemade Delights. All rights reserved.</p>
-          <p className="mt-1 tamil-text text-[10px] md:text-xs">© 2024 வீட்டு சமையல் சுவைகள். அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
+      {/* Bottom Bar */}
+      <div className="border-t border-background/10">
+        <div className="container px-4 py-4 md:py-5">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-2 text-center">
+            <p className="text-xs md:text-sm text-background/50">
+              © 2024 Maghizam Homemade Delights. All rights reserved.
+            </p>
+            <p className="text-[10px] text-background/30 tamil-text flex items-center gap-1">
+              Made with <Heart className="h-3 w-3 text-destructive inline fill-current" /> in Tamil Nadu
+            </p>
+          </div>
         </div>
       </div>
     </footer>

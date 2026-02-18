@@ -19,7 +19,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (phone: string, password: string) => Promise<boolean>;
-  signup: (name: string, phone: string, password: string) => Promise<boolean>;
+  signup: (name: string, phone: string, password: string, email?: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (updates: Partial<User>) => Promise<boolean>;
   savedCustomerDetails: CustomerDetails | null;
@@ -93,10 +93,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     init();
   }, []);
 
-  const signup = useCallback(async (name: string, phone: string, password: string): Promise<boolean> => {
+  const signup = useCallback(async (name: string, phone: string, password: string, email?: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const result = await signupCustomer(name, phone, password);
+      const result = await signupCustomer(name, phone, password, email);
 
       if (result.success) {
         localStorage.setItem(AUTH_TOKEN_KEY, result.token);

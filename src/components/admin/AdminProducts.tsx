@@ -120,7 +120,11 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
     setUploadingImage(true);
     try {
       const result = await uploadProductImage(file);
-      const newImages = [...(editingProduct?.images || []), result.path];
+      // Filter out placeholder entries before appending the new image
+      const existingImages = (editingProduct?.images || []).filter(
+        img => img && img.trim() !== '' && img !== '/placeholder.svg'
+      );
+      const newImages = [...existingImages, result.path];
       setEditingProduct(prev => prev ? { ...prev, images: newImages } : prev);
       toast.success('Image uploaded successfully');
     } catch (error: any) {
@@ -132,7 +136,11 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
 
   const handleAddImageUrl = () => {
     if (!imageUrlInput.trim()) return;
-    const newImages = [...(editingProduct?.images || []), imageUrlInput.trim()];
+    // Filter out placeholder entries before appending the new URL
+    const existingImages = (editingProduct?.images || []).filter(
+      img => img && img.trim() !== '' && img !== '/placeholder.svg'
+    );
+    const newImages = [...existingImages, imageUrlInput.trim()];
     setEditingProduct(prev => prev ? { ...prev, images: newImages } : prev);
     setImageUrlInput('');
     toast.success('Image URL added');
@@ -255,7 +263,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
                   price: 0,
                   descriptionEn: '',
                   descriptionTa: '',
-                  images: ['/placeholder.svg'],
+                  images: [],
                   ingredientsEn: [''],
                   ingredientsTa: [''],
                   benefitsEn: [''],
@@ -603,21 +611,23 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
                       </Label>
 
                       {/* Existing Images Preview */}
-                      {(editingProduct.images || []).filter(img => img && img.trim()).length > 0 && (
+                      {(editingProduct.images || []).filter(img => img && img.trim() && img !== '/placeholder.svg').length > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          {(editingProduct.images || []).filter(img => img && img.trim()).map((img, idx) => {
+                          {(editingProduct.images || []).filter(img => img && img.trim() && img !== '/placeholder.svg').map((img) => {
+                            // Find the original index in the unfiltered array for correct removal
+                            const originalIdx = (editingProduct.images || []).indexOf(img);
                             const BACKEND = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
                             const src = img.startsWith('http') ? img : `${BACKEND}/${img}`;
                             return (
-                              <div key={idx} className="relative group">
+                              <div key={originalIdx} className="relative group">
                                 <img
                                   src={src}
-                                  alt={`Product ${idx + 1}`}
+                                  alt={`Product ${originalIdx + 1}`}
                                   className="w-16 h-16 object-cover rounded-lg border"
                                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                 />
                                 <button
-                                  onClick={() => handleRemoveImage(idx)}
+                                  onClick={() => handleRemoveImage(originalIdx)}
                                   className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full w-4 h-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                   ×

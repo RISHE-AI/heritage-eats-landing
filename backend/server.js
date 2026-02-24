@@ -11,6 +11,10 @@ dotenv.config();
 // Connect to MongoDB
 connectDB();
 
+// Initialize Telegram Bot
+const { initBot } = require('./services/telegramBot');
+initBot();
+
 const app = express();
 
 // Middleware

@@ -23,6 +23,14 @@ const BADGE_STYLES: Record<string, { bg: string; text: string; animation: string
   custom: { bg: 'bg-blue-500', text: 'Special', animation: '' },
 };
 
+const BACKEND_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+
+function resolveImage(img: string | undefined): string {
+  if (!img || img === '/placeholder.svg') return '/placeholder.svg';
+  if (img.startsWith('http') || img.startsWith('/images/') || img.startsWith('/placeholder')) return img;
+  return `${BACKEND_BASE}/${img.replace(/^\//, '')}`;
+}
+
 const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant = "card" }) => {
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
@@ -30,7 +38,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
   const [heartAnim, setHeartAnim] = useState(false);
   const [reviewStats, setReviewStats] = useState({ reviewCount: 0, averageRating: 0 });
   const [selectedWeightIdx, setSelectedWeightIdx] = useState(0);
+  const [imageIndex, setImageIndex] = useState(0);
   const inWishlist = isInWishlist(product.id);
+
+  // Get the valid images list
+  const validImages = (product.images || []).filter(
+    img => img && typeof img === 'string' && img.trim() !== '' && img.trim() !== '/placeholder.svg'
+  );
+  const cardImageSrc = resolveImage(validImages[imageIndex]);
+
+  // When an image fails to load, try the next one in the array
+  const handleCardImageError = () => {
+    if (imageIndex < validImages.length - 1) {
+      setImageIndex(prev => prev + 1);
+    }
+    // If all images failed, the src will resolve to /placeholder.svg
+  };
 
   const weightOptions = product.weightOptions?.length ? product.weightOptions : [
     { weight: "250", price: product.price, unit: "g" }
@@ -75,17 +98,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
         {/* Image */}
         <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-secondary/20 shrink-0">
           <img
-            src={(() => {
-              const img = product.images?.[0];
-              if (!img || img === '/placeholder.svg') return '/placeholder.svg';
-              if (img.startsWith('http') || img.startsWith('/images/') || img.startsWith('/placeholder')) return img;
-              const BACKEND = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-              return `${BACKEND}/${img.replace(/^\//, '')}`;
-            })()}
+            src={cardImageSrc}
             alt={product.nameEn}
             className="h-full w-full object-cover"
             loading="lazy"
-            onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+            onError={handleCardImageError}
           />
           {badge && (
             <span className={cn(
@@ -169,17 +186,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
       {/* Image Container */}
       <div className="aspect-[4/3] overflow-hidden bg-secondary/20 relative shine-effect">
         <img
-          src={(() => {
-            const img = product.images?.[0];
-            if (!img || img === '/placeholder.svg') return '/placeholder.svg';
-            if (img.startsWith('http') || img.startsWith('/images/') || img.startsWith('/placeholder')) return img;
-            const BACKEND = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-            return `${BACKEND}/${img.replace(/^\//, '')}`;
-          })()}
+          src={cardImageSrc}
           alt={product.nameEn}
           className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
           loading="lazy"
-          onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+          onError={handleCardImageError}
         />
 
         {/* Badge */}

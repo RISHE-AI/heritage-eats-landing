@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,19 +23,29 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
     className,
     aspectRatio = "aspect-square",
 }) => {
-    // Filter out empty/placeholder entries; fall back to placeholder if none
-    const realImages = images.filter((img) => img && img !== "/placeholder.svg");
-    const hasImages = realImages.length > 0;
-    const displayImages = hasImages ? realImages : ["/placeholder.svg"];
+    // Track which images have failed to load
+    const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
-    // For circular queue: clone the first image at the end
-    // Indices: 0 = clone of last (not used here), 1..n = real, n+1 = clone of first
-    // Simpler approach: [last_clone, ...displayImages, first_clone]
+    // Filter out empty/placeholder entries AND images that failed to load
+    const validImages = useMemo(() => {
+        return (images || []).filter(
+            (img) =>
+                img &&
+                typeof img === "string" &&
+                img.trim() !== "" &&
+                img.trim() !== "/placeholder.svg" &&
+                !failedImages.has(img)
+        );
+    }, [images, failedImages]);
+
+    const hasImages = validImages.length > 0;
+    const displayImages = hasImages ? validImages : ["/placeholder.svg"];
+
+    // For circular carousel: add clone of first image at the end
     const slides = displayImages.length > 1
         ? [...displayImages, displayImages[0]]
         : displayImages;
 
-    // currentSlide is the index into `slides`
     const [currentSlide, setCurrentSlide] = useState(0);
     const [transitioning, setTransitioning] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
@@ -45,6 +55,24 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
 
     const totalSlides = slides.length;
     const isMultiple = displayImages.length > 1;
+
+    // Handle image load error — remove it from the carousel
+    const handleImageError = useCallback((imgSrc: string) => {
+        setFailedImages((prev) => {
+            const next = new Set(prev);
+            next.add(imgSrc);
+            return next;
+        });
+    }, []);
+
+    // Reset slide index when displayImages changes (e.g. after filtering broken images)
+    useEffect(() => {
+        if (currentSlide >= displayImages.length) {
+            setTransitioning(false);
+            setCurrentSlide(0);
+            setActiveThumb(0);
+        }
+    }, [displayImages.length, currentSlide]);
 
     // Sync activeThumb with currentSlide (accounting for clone)
     useEffect(() => {
@@ -59,7 +87,6 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
     const handleTransitionEnd = useCallback(() => {
         if (!isMultiple) return;
         if (currentSlide === displayImages.length) {
-            // We're on the clone of the first image — jump instantly to real index 0
             setTransitioning(false);
             setCurrentSlide(0);
         }
@@ -143,7 +170,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
                 >
                     {slides.map((img, idx) => (
                         <div
-                            key={idx}
+                            key={`${img}-${idx}`}
                             className="relative h-full flex-shrink-0"
                             style={{ width: `${100 / totalSlides}%` }}
                         >
@@ -151,7 +178,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
                                 src={resolveImageSrc(img)}
                                 alt={`${productName} — ${idx + 1}`}
                                 className="h-full w-full object-cover rounded-2xl"
-                                onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }}
+                                onError={() => handleImageError(img)}
                                 draggable={false}
                             />
                         </div>
@@ -210,7 +237,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
                 <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
                     {displayImages.map((img, idx) => (
                         <button
-                            key={idx}
+                            key={`thumb-${idx}`}
                             onClick={() => goTo(idx)}
                             aria-label={`Thumbnail ${idx + 1}`}
                             className={cn(
@@ -224,11 +251,11 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
                                 src={resolveImageSrc(img)}
                                 alt={`${productName} thumbnail ${idx + 1}`}
                                 className="h-full w-full object-cover"
-                                onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }}
+                                onError={() => handleImageError(img)}
                                 draggable={false}
                             />
                         </button>
-                    ))}
+                    ))} 
                 </div>
             )}
         </div>

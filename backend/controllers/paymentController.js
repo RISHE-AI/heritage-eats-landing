@@ -154,6 +154,24 @@ const verifyPayment = async (req, res, next) => {
                 fs.appendFileSync(path.join(__dirname, '../debug_email.log'), `\n[${new Date().toISOString()}] ERROR: ${emailError.message}\n`);
             }
 
+            // Send Telegram notification to admin (non-blocking)
+            try {
+                const { sendOrderNotification } = require('../services/telegramBot');
+                sendOrderNotification({
+                    orderId,
+                    customerName: customerInfo?.name || orderData.customerName || '',
+                    customerPhone: customerInfo?.phone || orderData.customerPhone || '',
+                    customerEmail: customerInfo?.email || orderData.customerEmail || '',
+                    customerAddress: customerInfo?.address || orderData.customerAddress || '',
+                    items: orderData.items || [],
+                    deliveryCharge: orderData.deliveryCharge || 0,
+                    totalAmount: orderData.totalAmount || orderData.grandTotal,
+                    paymentStatus: 'paid'
+                });
+            } catch (telegramError) {
+                console.error('Telegram notification error:', telegramError);
+            }
+
             // Clear user's cart after successful order
             const Cart = require('../models/Cart');
             if (orderData.customerId) {

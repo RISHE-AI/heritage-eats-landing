@@ -84,7 +84,7 @@ export const transformProduct = (p: any): Product => ({
   price: p.basePrice || p.price || 0,
   descriptionEn: p.description_en || p.descriptionEn || '',
   descriptionTa: p.description_ta || p.descriptionTa || '',
-  images: Array.isArray(p.images) ? p.images.filter((img: string) => img && img !== '/placeholder.svg') : [],
+  images: Array.isArray(p.images) ? p.images.filter((img: string) => img && typeof img === 'string' && img.trim() !== '' && img.trim() !== '/placeholder.svg') : [],
   ingredientsEn: p.ingredients_en || p.ingredientsEn || [],
   ingredientsTa: p.ingredients_ta || p.ingredientsTa || [],
   benefitsEn: p.benefits_en || p.benefitsEn || [],

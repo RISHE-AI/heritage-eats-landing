@@ -23,7 +23,7 @@ const BADGE_STYLES: Record<string, { bg: string; text: string; animation: string
   custom: { bg: 'bg-blue-500', text: 'Special', animation: '' },
 };
 
-const BACKEND_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+const BACKEND_BASE = 'https://heritage-eats-landing-1.onrender.com';
 
 function resolveImage(img: string | undefined): string {
   if (!img || img === '/placeholder.svg') return '/placeholder.svg';

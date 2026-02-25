@@ -316,7 +316,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productName 
               {review.reviewImage && (
                 <div className="mt-3 rounded-lg overflow-hidden h-32 w-full bg-secondary/20 max-w-xs">
                   <img
-                    src={review.reviewImage.startsWith('http') ? review.reviewImage : `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/${review.reviewImage.replace(/^\//, '')}`}
+                    src={review.reviewImage.startsWith('http') ? review.reviewImage : `https://heritage-eats-landing-1.onrender.com/${review.reviewImage.replace(/^\//, '')}`}
                     alt="Review"
                     className="h-full w-full object-cover hover:scale-105 transition-transform duration-500"
                     onError={(e) => { (e.target as HTMLDivElement).style.display = 'none'; }}

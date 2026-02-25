@@ -616,7 +616,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
                           {(editingProduct.images || []).filter(img => img && img.trim() && img !== '/placeholder.svg').map((img) => {
                             // Find the original index in the unfiltered array for correct removal
                             const originalIdx = (editingProduct.images || []).indexOf(img);
-                            const BACKEND = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+                            const BACKEND = 'https://heritage-eats-landing-1.onrender.com';
                             const src = img.startsWith('http') ? img : `${BACKEND}/${img}`;
                             return (
                               <div key={originalIdx} className="relative group">

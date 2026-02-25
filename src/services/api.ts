@@ -1,5 +1,5 @@
 // API Service Layer - Centralized backend communication
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = 'https://heritage-eats-landing-1.onrender.com';
 
 const getAuthHeaders = (): HeadersInit => {
     const token = localStorage.getItem('auth_token');

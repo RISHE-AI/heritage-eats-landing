@@ -22,7 +22,7 @@ const DUPLICATE_KEY = "maghizam_overall_review_submitted";
 
 /* ─── Single Review Card ─── */
 const ReviewCard: React.FC<{ review: Review }> = ({ review }) => {
-  const BACKEND = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+  const BACKEND = 'https://heritage-eats-landing-1.onrender.com';
   return (
     <Card className="rounded-2xl shadow-card flex-shrink-0 w-[300px] sm:w-[320px] md:w-[340px] snap-center">
       <CardContent className="p-4">

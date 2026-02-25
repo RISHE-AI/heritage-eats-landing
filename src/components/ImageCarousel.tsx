@@ -9,7 +9,7 @@ interface ImageCarouselProps {
     aspectRatio?: string; // e.g. "aspect-square" or "aspect-[4/3]"
 }
 
-const BACKEND = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:5000";
+const BACKEND = "https://heritage-eats-landing-1.onrender.com";
 
 function resolveImageSrc(img: string): string {
     if (!img || img === "/placeholder.svg") return "/placeholder.svg";
@@ -255,7 +255,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
                                 draggable={false}
                             />
                         </button>
-                    ))} 
+                    ))}
                 </div>
             )}
         </div>

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { signupCustomer, loginCustomer, getProfile, updateProfile as apiUpdateProfile } from "@/services/api";
+import { signupCustomer, loginCustomer, googleLoginCustomer, getProfile, updateProfile as apiUpdateProfile } from "@/services/api";
 
 export interface User {
   id: string;
@@ -19,6 +19,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (phone: string, password: string) => Promise<boolean>;
+  googleLogin: (credential: string) => Promise<boolean>;
   signup: (name: string, phone: string, password: string, email?: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (updates: Partial<User>) => Promise<boolean>;
@@ -163,6 +164,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const googleLogin = useCallback(async (credential: string): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const result = await googleLoginCustomer(credential);
+
+      if (result.success) {
+        localStorage.setItem(AUTH_TOKEN_KEY, result.token);
+        const userData: User = {
+          id: result.data._id,
+          _id: result.data._id,
+          name: result.data.name,
+          phone: result.data.phone || '',
+          email: result.data.email || '',
+          address: result.data.address || '',
+          totalOrders: result.data.totalOrders || 0,
+          totalSpent: result.data.totalSpent || 0,
+          createdAt: result.data.createdAt,
+          updatedAt: result.data.updatedAt
+        };
+        setUser(userData);
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
+        toast.success(`Welcome, ${userData.name}! / வருக!`);
+        setIsLoading(false);
+        return true;
+      }
+
+      setIsLoading(false);
+      return false;
+    } catch (error: any) {
+      toast.error(error.message || "Google sign-in failed");
+      setIsLoading(false);
+      return false;
+    }
+  }, []);
+
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(AUTH_TOKEN_KEY);
@@ -220,6 +256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isLoading,
         login,
+        googleLogin,
         signup,
         logout,
         updateProfile: updateUserProfile,

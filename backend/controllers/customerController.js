@@ -1,5 +1,8 @@
 const Customer = require('../models/Customer');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET || 'homemade_delights_secret_2024', {
@@ -152,9 +155,60 @@ const createCustomer = async (req, res, next) => {
     }
 };
 
+// @desc    Login / Register with Google
+// @route   POST /api/customers/google-login
+const googleLogin = async (req, res, next) => {
+    try {
+        const { credential } = req.body;
+
+        if (!credential) {
+            res.status(400);
+            throw new Error('Google credential is required');
+        }
+
+        // Verify the Google ID token
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+        const payload = ticket.getPayload();
+        const { sub: googleId, name, email, picture } = payload;
+
+        // Try to find existing customer by googleId
+        let customer = await Customer.findOne({ googleId });
+
+        if (!customer && email) {
+            // Check if a customer with this email already exists (link accounts)
+            customer = await Customer.findOne({ email });
+            if (customer) {
+                customer.googleId = googleId;
+                await customer.save();
+            }
+        }
+
+        if (!customer) {
+            // Create a new customer from Google data
+            customer = await Customer.create({
+                name,
+                email: email || '',
+                googleId
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: customer,
+            token: generateToken(customer._id)
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     signup,
     login,
+    googleLogin,
     getProfile,
     updateProfile,
     getCustomers,

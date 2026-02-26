@@ -104,6 +104,15 @@ export const loginCustomer = async (phone: string, password: string) => {
     return handleResponse(res);
 };
 
+export const googleLoginCustomer = async (credential: string) => {
+    const res = await fetch(`${API_BASE}/customers/google-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential })
+    });
+    return handleResponse(res);
+};
+
 export const getProfile = async () => {
     const res = await fetch(`${API_BASE}/customers/profile`, {
         headers: getAuthHeaders()
@@ -381,6 +390,34 @@ export const updateSiteSettings = async (data: any) => {
 
 export const fetchComputedStats = async () => {
     const res = await fetch(`${API_BASE}/site-settings/computed-stats`, {
+        headers: getAdminHeaders()
+    });
+    return handleResponse(res);
+};
+
+// ========== COUNTDOWN TIMER ==========
+export const fetchCountdown = async () => {
+    const res = await fetch(`${API_BASE}/site-settings/countdown`);
+    return handleResponse(res);
+};
+
+export const setCountdown = async (data: {
+    days: number;
+    title?: string;
+    titleTa?: string;
+    description?: string;
+}) => {
+    const res = await fetch(`${API_BASE}/site-settings/countdown`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
+        body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+};
+
+export const disableCountdown = async () => {
+    const res = await fetch(`${API_BASE}/site-settings/countdown`, {
+        method: 'DELETE',
         headers: getAdminHeaders()
     });
     return handleResponse(res);

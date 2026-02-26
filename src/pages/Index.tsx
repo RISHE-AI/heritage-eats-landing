@@ -3,6 +3,7 @@ import { Product, transformProduct } from "@/types/product";
 import { fetchProducts } from "@/services/api";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
+import CountdownBanner from "@/components/CountdownBanner";
 import SpecialOffers from "@/components/SpecialOffers";
 import StatsCounter from "@/components/StatsCounter";
 import ProductSection from "@/components/ProductSection";
@@ -77,6 +78,7 @@ const Index: React.FC = () => {
       <Header />
       <main>
         <Hero />
+        <CountdownBanner />
 
         <SpecialOffers />
         <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />

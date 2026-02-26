@@ -216,29 +216,66 @@ const Checkout: React.FC = () => {
           {/* Cart Summary */}
           <div className="lg:col-span-2 space-y-4">
             <Card className="rounded-2xl shadow-card overflow-hidden">
-              <div className="px-4 py-3 bg-secondary/30 border-b">
-                <h2 className="font-serif text-sm font-bold">
-                  Order Summary
-                  <span className="text-xs font-normal text-muted-foreground tamil-text ml-2">ஆர்டர் சுருக்கம்</span>
+              <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-secondary/30 border-b">
+                <h2 className="font-serif text-sm font-bold flex items-center justify-between">
+                  <span>
+                    Order Summary
+                    <span className="text-xs font-normal text-muted-foreground tamil-text ml-2">ஆர்டர் சுருக்கம்</span>
+                  </span>
+                  <span className="text-xs font-normal text-muted-foreground">{items.length} item{items.length !== 1 ? 's' : ''}</span>
                 </h2>
               </div>
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="p-3 sm:p-4 space-y-2.5 sm:space-y-3">
                 {items.map(item => (
-                  <div key={`${item.product.id}-${item.selectedWeight}`} className="p-3 rounded-xl bg-secondary/20">
-                    <div className="flex items-center gap-3">
+                  <div key={`${item.product.id}-${item.selectedWeight}`} className="p-2.5 sm:p-3 rounded-xl bg-secondary/20 border border-border/30">
+                    {/* Item Header: Image + Name + Remove */}
+                    <div className="flex items-start gap-2.5 sm:gap-3">
                       <img
                         src={item.product.images[0]}
                         alt={item.product.nameEn}
-                        className="h-14 w-14 rounded-lg object-cover shadow-sm"
+                        className="h-16 w-16 sm:h-14 sm:w-14 rounded-lg object-cover shadow-sm shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium truncate">{item.product.nameEn}</h4>
-                        <p className="text-[11px] text-muted-foreground">
-                          {item.selectedWeight} • Qty: {item.quantity}
-                        </p>
-                        <p className="text-sm font-semibold text-primary">₹{item.unitPrice * item.quantity}</p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-medium truncate">{item.product.nameEn}</h4>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{item.selectedWeight}</p>
+                          </div>
+                          <button
+                            onClick={() => removeFromCart(item.product.id, item.selectedWeight)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                            aria-label="Remove item"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Quantity Controls + Price */}
+                        <div className="flex items-center justify-between mt-2 gap-2">
+                          <div className="flex items-center bg-background rounded-lg border border-border h-8">
+                            <button
+                              onClick={() => updateQuantity(item.product.id, item.selectedWeight, item.quantity - 1)}
+                              disabled={item.quantity <= 1}
+                              className="h-8 w-8 flex items-center justify-center rounded-l-lg hover:bg-muted transition-colors disabled:opacity-40"
+                              aria-label="Decrease quantity"
+                            >
+                              <Minus className="h-3 w-3" />
+                            </button>
+                            <span className="w-8 text-center text-sm font-semibold tabular-nums">{item.quantity}</span>
+                            <button
+                              onClick={() => updateQuantity(item.product.id, item.selectedWeight, item.quantity + 1)}
+                              className="h-8 w-8 flex items-center justify-center rounded-r-lg hover:bg-muted transition-colors"
+                              aria-label="Increase quantity"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
+                          </div>
+                          <p className="text-sm font-bold text-primary tabular-nums">₹{item.unitPrice * item.quantity}</p>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Custom Message */}
                     <div className="mt-2">
                       <input
                         type="text"
@@ -252,23 +289,24 @@ const Checkout: React.FC = () => {
                   </div>
                 ))}
 
-                <div className="border-t pt-3 space-y-1.5">
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                {/* Totals */}
+                <div className="border-t pt-3 space-y-2">
+                  <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
                     <span>Subtotal</span>
-                    <span>₹{totalPrice}</span>
+                    <span className="tabular-nums">₹{totalPrice}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
                     <span>Delivery</span>
-                    <span className={deliveryCharge === 0 ? "text-success font-medium" : ""}>
+                    <span className={`tabular-nums ${deliveryCharge === 0 ? "text-success font-medium" : ""}`}>
                       {deliveryCharge === 0 ? "FREE ✓" : `₹${deliveryCharge}`}
                     </span>
                   </div>
                   {deliveryCharge > 0 && (
                     <p className="text-[10px] text-muted-foreground">₹60/kg • Free above ₹1000</p>
                   )}
-                  <div className="flex justify-between text-base font-bold border-t pt-2">
+                  <div className="flex justify-between text-base sm:text-lg font-bold border-t pt-2.5">
                     <span>Total</span>
-                    <span className="text-primary">₹{grandTotal}</span>
+                    <span className="text-primary tabular-nums">₹{grandTotal}</span>
                   </div>
                 </div>
               </CardContent>

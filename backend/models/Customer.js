@@ -9,9 +9,8 @@ const customerSchema = new mongoose.Schema({
     },
     phone: {
         type: String,
-        required: [true, 'Phone number is required'],
-        unique: true,
-        trim: true
+        trim: true,
+        sparse: true
     },
     email: {
         type: String,
@@ -25,8 +24,11 @@ const customerSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: [true, 'Password is required'],
         minlength: [4, 'Password must be at least 4 characters']
+    },
+    googleId: {
+        type: String,
+        sparse: true
     },
     totalOrders: {
         type: Number,
@@ -45,9 +47,13 @@ const customerSchema = new mongoose.Schema({
     timestamps: true
 });
 
+// Sparse unique indexes (allow multiple nulls)
+customerSchema.index({ phone: 1 }, { unique: true, sparse: true });
+customerSchema.index({ googleId: 1 }, { unique: true, sparse: true });
+
 // Hash password before saving
 customerSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
+    if (!this.password || !this.isModified('password')) return next();
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
     next();
@@ -55,6 +61,7 @@ customerSchema.pre('save', async function (next) {
 
 // Compare password method
 customerSchema.methods.matchPassword = async function (enteredPassword) {
+    if (!this.password) return false;
     return await bcrypt.compare(enteredPassword, this.password);
 };
 

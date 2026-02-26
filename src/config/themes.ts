@@ -1,167 +1,78 @@
 /**
- * Multi-Theme Configuration System
- * Supports 8 professional themes with light/dark mode variants
+ * DaisyUI-inspired Theme Configuration
+ * 10 themes: light, dark, valentine, halloween, garden, forest, black, luxury, silk, abyss
+ * Uses CSS custom properties via data-theme attribute on <html>
  */
 
-export interface ThemeColors {
-  primary: string;
-  primaryDark: string;
-  primaryLight: string;
-  backgroundMain: string;
-  backgroundSecondary: string;
-  textMain: string;
-  textMuted: string;
-}
-
-export interface Theme {
+export interface ThemeInfo {
   id: string;
   name: string;
-  colors: ThemeColors;
-  isDefault?: boolean;
+  emoji: string;
+  isDark: boolean;
+  preview: string; // primary color hex for preview dot
 }
 
-export const themes: Theme[] = [
-  {
-    id: 'classic-red',
-    name: 'Classic Red',
-    isDefault: true,
-    colors: {
-      primary: '#C0392B',
-      primaryDark: '#8B0000',
-      primaryLight: '#E74C3C',
-      backgroundMain: '#FFFFFF',
-      backgroundSecondary: '#F8F6F4',
-      textMain: '#2C3E50',
-      textMuted: '#95A5A6'
-    }
-  },
-  {
-    id: 'royal-purple',
-    name: 'Royal Purple',
-    colors: {
-      primary: '#8E44AD',
-      primaryDark: '#6C3483',
-      primaryLight: '#AF7AC5',
-      backgroundMain: '#FFFFFF',
-      backgroundSecondary: '#F4EBF8',
-      textMain: '#2C3E50',
-      textMuted: '#95A5A6'
-    }
-  },
-  {
-    id: 'emerald-green',
-    name: 'Emerald Green',
-    colors: {
-      primary: '#27AE60',
-      primaryDark: '#1E8449',
-      primaryLight: '#52BE80',
-      backgroundMain: '#FFFFFF',
-      backgroundSecondary: '#EBFAF0',
-      textMain: '#2C3E50',
-      textMuted: '#95A5A6'
-    }
-  },
-  {
-    id: 'royal-blue',
-    name: 'Royal Blue',
-    colors: {
-      primary: '#2980B9',
-      primaryDark: '#1F618D',
-      primaryLight: '#5DADE2',
-      backgroundMain: '#FFFFFF',
-      backgroundSecondary: '#EBF5FB',
-      textMain: '#2C3E50',
-      textMuted: '#95A5A6'
-    }
-  },
-  {
-    id: 'sunset-orange',
-    name: 'Sunset Orange',
-    colors: {
-      primary: '#E67E22',
-      primaryDark: '#D35400',
-      primaryLight: '#F39C12',
-      backgroundMain: '#FFFFFF',
-      backgroundSecondary: '#FEF5E7',
-      textMain: '#2C3E50',
-      textMuted: '#95A5A6'
-    }
-  },
-  {
-    id: 'chocolate-brown',
-    name: 'Chocolate Brown',
-    colors: {
-      primary: '#7B3F00',
-      primaryDark: '#5B2E0B',
-      primaryLight: '#A0522D',
-      backgroundMain: '#FFFFFF',
-      backgroundSecondary: '#F5E6D3',
-      textMain: '#2C3E50',
-      textMuted: '#95A5A6'
-    }
-  },
-  {
-    id: 'luxury-black-gold',
-    name: 'Luxury Black & Gold',
-    colors: {
-      primary: '#1A1A1A',
-      primaryDark: '#000000',
-      primaryLight: '#444444',
-      backgroundMain: '#FFFFFF',
-      backgroundSecondary: '#F0EBE0',
-      textMain: '#1A1A1A',
-      textMuted: '#888888'
-    }
-  }
+export const themes: ThemeInfo[] = [
+  { id: "light", name: "Light", emoji: "☀️", isDark: false, preview: "#d32f2f" },
+  { id: "dark", name: "Dark", emoji: "🌙", isDark: true, preview: "#d32f2f" },
+  { id: "valentine", name: "Valentine", emoji: "💕", isDark: false, preview: "#e96d7b" },
+  { id: "halloween", name: "Halloween", emoji: "🎃", isDark: true, preview: "#f28c18" },
+  { id: "garden", name: "Garden", emoji: "🌿", isDark: false, preview: "#5c7f67" },
+  { id: "forest", name: "Forest", emoji: "🌲", isDark: true, preview: "#1eb854" },
+  { id: "black", name: "Black", emoji: "⚫", isDark: true, preview: "#343232" },
+  { id: "luxury", name: "Luxury", emoji: "💎", isDark: true, preview: "#dca54c" },
+  { id: "silk", name: "Silk", emoji: "🧵", isDark: false, preview: "#8b6f4e" },
+  { id: "abyss", name: "Abyss", emoji: "🌊", isDark: true, preview: "#6C63FF" },
 ];
 
-// Get theme by ID
-export const getThemeById = (id: string): Theme | undefined => {
-  return themes.find(theme => theme.id === id);
+const THEME_STORAGE_KEY = "maghizam-theme";
+const DEFAULT_THEME = "dark";
+
+/** Get saved theme ID from localStorage */
+export const getSavedTheme = (): string => {
+  if (typeof window === "undefined") return DEFAULT_THEME;
+  return localStorage.getItem(THEME_STORAGE_KEY) || DEFAULT_THEME;
 };
 
-// Get default theme
-export const getDefaultTheme = (): Theme => {
-  return themes.find(theme => theme.isDefault) || themes[0];
+/** Save theme ID to localStorage */
+export const saveTheme = (themeId: string): void => {
+  localStorage.setItem(THEME_STORAGE_KEY, themeId);
 };
 
-// Apply theme to document
-export const applyTheme = (theme: Theme, darkMode: boolean = false) => {
+/** Get theme info by ID */
+export const getThemeById = (id: string): ThemeInfo | undefined => {
+  return themes.find((t) => t.id === id);
+};
+
+/** Apply theme to document */
+export const applyTheme = (themeId: string): void => {
+  const theme = getThemeById(themeId);
+  if (!theme) return;
+
   const root = document.documentElement;
+  root.setAttribute("data-theme", theme.id);
 
-  // Base colors
-  root.style.setProperty('--color-primary', theme.colors.primary);
-  root.style.setProperty('--color-primary-dark', theme.colors.primaryDark);
-  root.style.setProperty('--color-primary-light', theme.colors.primaryLight);
-  root.style.setProperty('--color-text-main', theme.colors.textMain);
-  root.style.setProperty('--color-text-muted', theme.colors.textMuted);
-
-  // Background colors adjust for dark mode
-  if (darkMode) {
-    const darkenColor = (hex: string, percent: number = 10): string => {
-      const num = parseInt(hex.replace('#', ''), 16);
-      const r = Math.max(0, (num >> 16) - percent);
-      const g = Math.max(0, ((num >> 8) & 0x00FF) - percent);
-      const b = Math.max(0, (num & 0x0000FF) - percent);
-      return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
-    };
-
-    root.style.setProperty('--color-bg-main', darkenColor(theme.colors.backgroundMain, 15));
-    root.style.setProperty('--color-bg-secondary', darkenColor(theme.colors.backgroundSecondary, 20));
+  // Set dark class for components that use it
+  if (theme.isDark) {
+    root.classList.add("dark");
   } else {
-    root.style.setProperty('--color-bg-main', theme.colors.backgroundMain);
-    root.style.setProperty('--color-bg-secondary', theme.colors.backgroundSecondary);
+    root.classList.remove("dark");
   }
 
-  root.style.setProperty('--transition-smooth', '0.3s ease');
+  // Smooth transition
+  root.classList.add("theme-transition");
+  requestAnimationFrame(() => {
+    setTimeout(() => root.classList.remove("theme-transition"), 350);
+  });
 };
 
-// Get all theme IDs for admin dropdown
-export const getAllThemeIds = (): string[] => {
-  return themes.map(theme => theme.id);
+/** Check if a theme is dark */
+export const isThemeDark = (themeId: string): boolean => {
+  const theme = getThemeById(themeId);
+  return theme?.isDark ?? false;
 };
 
-// Get all theme names for admin dropdown
-export const getAllThemes = (): Array<{ id: string; name: string }> => {
-  return themes.map(theme => ({ id: theme.id, name: theme.name }));
+/** Get all themes list (for admin settings compatibility) */
+export const getAllThemes = (): Array<{ id: string; name: string; emoji: string; preview: string; enabled: boolean }> => {
+  return themes.map((t) => ({ id: t.id, name: t.name, emoji: t.emoji, preview: t.preview, enabled: true }));
 };

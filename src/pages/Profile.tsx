@@ -14,20 +14,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useThemeColor, type ThemeColor } from "@/components/ThemeProvider";
-
-const THEME_COLORS: { value: ThemeColor; label: string; colorClass: string }[] = [
-  { value: "warm-red", label: "Warm Red", colorClass: "bg-red-700" },
-  { value: "royal-purple", label: "Royal Purple", colorClass: "bg-purple-700" },
-  { value: "forest-green", label: "Forest Green", colorClass: "bg-emerald-700" },
-  { value: "saffron-orange", label: "Saffron Orange", colorClass: "bg-orange-500" },
-  { value: "deep-blue", label: "Deep Blue", colorClass: "bg-blue-700" },
-];
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout, isLoading, updateProfile } = useAuth();
-  const { themeColor, setThemeColor } = useThemeColor();
   const [activeTab, setActiveTab] = useState("profile");
 
   const [editing, setEditing] = useState(false);
@@ -268,27 +258,9 @@ const Profile: React.FC = () => {
             <Card className="rounded-2xl shadow-card border border-border">
               <CardContent className="p-4 md:p-5">
                 <h3 className="font-semibold text-sm mb-3">Theme Preferences</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Dark / Light Mode</span>
-                    <ThemeToggle />
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground block mb-2">Accent Color</span>
-                    <div className="flex items-center gap-2">
-                      {THEME_COLORS.map((tc) => (
-                        <button
-                          key={tc.value}
-                          onClick={() => setThemeColor(tc.value)}
-                          className={`h-8 w-8 rounded-full transition-all duration-200 hover:scale-110 ${tc.colorClass} ${themeColor === tc.value
-                            ? "ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110"
-                            : "opacity-60 hover:opacity-100"
-                            }`}
-                          title={tc.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Select Theme</span>
+                  <ThemeToggle />
                 </div>
               </CardContent>
             </Card>

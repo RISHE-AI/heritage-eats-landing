@@ -38,7 +38,25 @@ const siteSettingsSchema = new mongoose.Schema({
 
     // Gallery
     galleryVisible: { type: Boolean, default: true },
-    gallery: { type: [galleryImageSchema], default: [] }
+    gallery: { type: [galleryImageSchema], default: [] },
+
+    // ─── Countdown Timer (Persistent) ───
+    countdownEnabled: { type: Boolean, default: false },
+    countdownOfferEndDate: { type: Date, default: null },
+    countdownOfferTitle: { type: String, default: 'Special Offer!' },
+    countdownOfferTitleTa: { type: String, default: 'சிறப்பு சலுகை!' },
+    countdownOfferDescription: { type: String, default: '' },
+    countdownCreatedAt: { type: Date, default: null },
+
+    // ─── Theme Settings (Admin-controlled) ───
+    defaultTheme: { type: String, default: 'classic-red' },
+    enabledThemes: {
+        type: [String],
+        default: [
+            'classic-red', 'royal-purple', 'emerald-green', 'royal-blue',
+            'sunset-orange', 'chocolate-brown', 'luxury-black-gold', 'soft-pastel'
+        ]
+    }
 }, {
     timestamps: true
 });

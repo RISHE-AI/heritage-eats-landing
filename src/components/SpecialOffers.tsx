@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Flame, Clock, ChevronLeft, ChevronRight } from "lucide-react";
-import { fetchSiteSettings } from "@/services/api";
+import { Flame, Clock, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { fetchSiteSettings, fetchCountdown } from "@/services/api";
 
 interface Offer {
     emoji: string;
@@ -13,31 +13,72 @@ interface Offer {
     active?: boolean;
 }
 
+interface TimeLeft {
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+    totalMs: number;
+}
+
 const FALLBACK_OFFERS: Offer[] = [
     { emoji: "🍬", title: "Festive Sweet Box", titleTa: "பண்டிகை இனிப்பு பெட்டி", description: "Assorted premium sweets combo pack — perfect for celebrations!", discount: "20% OFF", color: "from-amber-500/20 to-orange-500/20" },
     { emoji: "🌶️", title: "Pickle Combo Deal", titleTa: "ஊறுகாய் சிறப்பு ஆஃபர்", description: "Buy any 3 pickle varieties and get special bundle pricing!", discount: "Buy 3 Save ₹150", color: "from-red-500/20 to-rose-500/20" },
     { emoji: "🎉", title: "New Customer Offer", titleTa: "புதிய வாடிக்கையாளர் ஆஃபர்", description: "First order? Get a special welcome discount on your entire order!", discount: "15% OFF", color: "from-emerald-500/20 to-teal-500/20" },
 ];
 
-function useCountdown(targetDate: Date) {
-    const calc = useCallback(() => {
-        const diff = Math.max(0, targetDate.getTime() - Date.now());
+/**
+ * Persistent countdown hook that fetches expiry from backend
+ */
+function usePersistentCountdown() {
+    const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(null);
+    const [endDate, setEndDate] = useState<string | null>(null);
+    const [createdAt, setCreatedAt] = useState<string | null>(null);
+    const [enabled, setEnabled] = useState(false);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const calcTimeLeft = useCallback((end: string): TimeLeft => {
+        const diff = Math.max(0, new Date(end).getTime() - Date.now());
         return {
             days: Math.floor(diff / (1000 * 60 * 60 * 24)),
             hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
             minutes: Math.floor((diff / (1000 * 60)) % 60),
             seconds: Math.floor((diff / 1000) % 60),
+            totalMs: diff,
         };
-    }, [targetDate]);
-
-    const [time, setTime] = useState(calc);
+    }, []);
 
     useEffect(() => {
-        const id = setInterval(() => setTime(calc()), 1000);
-        return () => clearInterval(id);
-    }, [calc]);
+        fetchCountdown()
+            .then((res) => {
+                if (res.success && res.data && res.data.enabled && !res.data.isExpired) {
+                    setEndDate(res.data.offerEndDate);
+                    setCreatedAt(res.data.createdAt);
+                    setEnabled(true);
+                }
+            })
+            .catch(() => { /* fallback: no countdown */ });
+    }, []);
 
-    return time;
+    useEffect(() => {
+        if (!enabled || !endDate) return;
+
+        setTimeLeft(calcTimeLeft(endDate));
+        intervalRef.current = setInterval(() => {
+            const tl = calcTimeLeft(endDate);
+            setTimeLeft(tl);
+            if (tl.totalMs <= 0 && intervalRef.current) {
+                clearInterval(intervalRef.current);
+                setEnabled(false);
+            }
+        }, 1000);
+
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [enabled, endDate, calcTimeLeft]);
+
+    return { timeLeft, enabled, endDate, createdAt };
 }
 
 const SpecialOffers: React.FC = () => {
@@ -58,13 +99,8 @@ const SpecialOffers: React.FC = () => {
             .catch(() => { /* use fallback */ });
     }, []);
 
-    // Countdown: 7 days from now (rolling)
-    const [target] = useState(() => {
-        const d = new Date();
-        d.setDate(d.getDate() + 7);
-        return d;
-    });
-    const countdown = useCountdown(target);
+    // Persistent countdown from backend
+    const { timeLeft: countdown, enabled: countdownEnabled } = usePersistentCountdown();
 
     // Auto-cycle
     useEffect(() => {
@@ -157,11 +193,17 @@ const SpecialOffers: React.FC = () => {
 
                         {/* Right: Countdown + nav */}
                         <div className="flex flex-col items-center gap-5">
-                            {/* Countdown */}
+                            {/* Countdown — only shows when backend countdown is active */}
+                            {countdownEnabled && countdown && countdown.totalMs > 0 && (
                             <div className="text-center">
                                 <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground mb-2">
                                     <Clock className="h-3.5 w-3.5" />
                                     Offer Ends In
+                                    {countdown.totalMs < 24 * 60 * 60 * 1000 && (
+                                        <span className="ml-1 flex items-center gap-0.5 text-amber-500">
+                                            <AlertTriangle className="h-3 w-3" /> Ending Soon!
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex gap-2">
                                     {[
@@ -181,6 +223,7 @@ const SpecialOffers: React.FC = () => {
                                     ))}
                                 </div>
                             </div>
+                            )}
 
                             {/* Dots + arrows */}
                             {offers.length > 1 && (

@@ -26,7 +26,8 @@ router.put('/', protect, adminOnly, async (req, res) => {
         const allowed = [
             'offersVisible', 'offers',
             'statsVisible', 'statsAutoCompute', 'stats',
-            'galleryVisible', 'gallery'
+            'galleryVisible', 'gallery',
+            'defaultTheme', 'enabledThemes'
         ];
 
         allowed.forEach(key => {
@@ -40,6 +41,94 @@ router.put('/', protect, adminOnly, async (req, res) => {
     } catch (error) {
         console.error('Error updating site settings:', error);
         res.status(500).json({ success: false, message: 'Failed to update site settings' });
+    }
+});
+
+// ─── COUNTDOWN TIMER ENDPOINTS ───
+
+// GET /api/site-settings/countdown — public, returns countdown data
+router.get('/countdown', async (req, res) => {
+    try {
+        const settings = await SiteSettings.getSettings();
+        const now = new Date();
+        const endDate = settings.countdownOfferEndDate;
+        const isExpired = !endDate || new Date(endDate) <= now;
+
+        res.json({
+            success: true,
+            data: {
+                enabled: settings.countdownEnabled && !isExpired,
+                offerEndDate: settings.countdownOfferEndDate,
+                offerTitle: settings.countdownOfferTitle,
+                offerTitleTa: settings.countdownOfferTitleTa,
+                offerDescription: settings.countdownOfferDescription,
+                isExpired,
+                createdAt: settings.countdownCreatedAt
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching countdown:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch countdown' });
+    }
+});
+
+// POST /api/site-settings/countdown — admin only, set countdown
+router.post('/countdown', protect, adminOnly, async (req, res) => {
+    try {
+        const { days, title, titleTa, description } = req.body;
+
+        if (!days || days <= 0 || days > 365) {
+            return res.status(400).json({
+                success: false,
+                message: 'Duration must be between 1 and 365 days'
+            });
+        }
+
+        const settings = await SiteSettings.getSettings();
+        const now = new Date();
+        const endDate = new Date(now.getTime() + (days * 24 * 60 * 60 * 1000));
+
+        settings.countdownEnabled = true;
+        settings.countdownOfferEndDate = endDate;
+        settings.countdownCreatedAt = now;
+
+        if (title !== undefined) settings.countdownOfferTitle = title;
+        if (titleTa !== undefined) settings.countdownOfferTitleTa = titleTa;
+        if (description !== undefined) settings.countdownOfferDescription = description;
+
+        await settings.save();
+
+        res.json({
+            success: true,
+            data: {
+                enabled: true,
+                offerEndDate: endDate,
+                offerTitle: settings.countdownOfferTitle,
+                offerTitleTa: settings.countdownOfferTitleTa,
+                offerDescription: settings.countdownOfferDescription,
+                createdAt: now
+            },
+            message: `Countdown set for ${days} days. Ends on ${endDate.toISOString()}`
+        });
+    } catch (error) {
+        console.error('Error setting countdown:', error);
+        res.status(500).json({ success: false, message: 'Failed to set countdown' });
+    }
+});
+
+// DELETE /api/site-settings/countdown — admin only, disable countdown
+router.delete('/countdown', protect, adminOnly, async (req, res) => {
+    try {
+        const settings = await SiteSettings.getSettings();
+        settings.countdownEnabled = false;
+        settings.countdownOfferEndDate = null;
+        settings.countdownCreatedAt = null;
+        await settings.save();
+
+        res.json({ success: true, message: 'Countdown disabled' });
+    } catch (error) {
+        console.error('Error disabling countdown:', error);
+        res.status(500).json({ success: false, message: 'Failed to disable countdown' });
     }
 });
 

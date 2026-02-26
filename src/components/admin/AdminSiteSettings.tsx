@@ -9,10 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import {
     ChevronDown, ChevronUp, Plus, Trash2, Save, Loader2,
-    Eye, EyeOff, BarChart3, Image, Megaphone, RefreshCw, Sparkles
+    Eye, EyeOff, BarChart3, Image, Megaphone, RefreshCw, Sparkles,
+    Palette, Timer, Check, X, RotateCcw, Calendar
 } from "lucide-react";
 import { toast } from "sonner";
-import { fetchSiteSettings, updateSiteSettings, fetchComputedStats } from "@/services/api";
+import { fetchSiteSettings, updateSiteSettings, fetchComputedStats, fetchCountdown, setCountdown, disableCountdown } from "@/services/api";
+import { getAllThemes } from "@/config/themes";
 
 interface Offer {
     emoji: string;
@@ -87,6 +89,22 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = () => {
     const [offersOpen, setOffersOpen] = useState(true);
     const [statsOpen, setStatsOpen] = useState(false);
     const [galleryOpen, setGalleryOpen] = useState(false);
+    const [themeOpen, setThemeOpen] = useState(false);
+    const [countdownOpen, setCountdownOpen] = useState(false);
+
+    // Theme admin state
+    const [defaultTheme, setDefaultTheme] = useState("classic-red");
+    const [enabledThemes, setEnabledThemes] = useState<string[]>([]);
+    const [themeSaving, setThemeSaving] = useState(false);
+
+    // Countdown admin state
+    const [countdownDays, setCountdownDays] = useState(7);
+    const [countdownTitle, setCountdownTitle] = useState("");
+    const [countdownTitleTa, setCountdownTitleTa] = useState("");
+    const [countdownDesc, setCountdownDesc] = useState("");
+    const [countdownActive, setCountdownActive] = useState(false);
+    const [countdownEndDate, setCountdownEndDate] = useState<string | null>(null);
+    const [countdownSaving, setCountdownSaving] = useState(false);
 
     useEffect(() => {
         loadSettings();
@@ -106,7 +124,21 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = () => {
                     galleryVisible: res.data.galleryVisible ?? true,
                     gallery: res.data.gallery || [],
                 });
+                // Load theme settings
+                setDefaultTheme(res.data.defaultTheme || "classic-red");
+                setEnabledThemes(res.data.enabledThemes || getAllThemes().map(t => t.id));
             }
+            // Load countdown state
+            try {
+                const cRes = await fetchCountdown();
+                if (cRes.success && cRes.data) {
+                    setCountdownActive(cRes.data.enabled && !cRes.data.isExpired);
+                    setCountdownEndDate(cRes.data.offerEndDate || null);
+                    setCountdownTitle(cRes.data.title || "");
+                    setCountdownTitleTa(cRes.data.titleTa || "");
+                    setCountdownDesc(cRes.data.description || "");
+                }
+            } catch { /* no countdown */ }
         } catch (err) {
             toast.error("Failed to load site settings");
         } finally {
@@ -203,6 +235,95 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = () => {
             ...s,
             gallery: s.gallery.map((g, i) => (i === idx ? { ...g, [field]: value } : g)),
         }));
+    };
+
+    // ─── Theme helpers ───
+    const handleThemeSave = async () => {
+        try {
+            setThemeSaving(true);
+            const res = await updateSiteSettings({ defaultTheme, enabledThemes });
+            if (res.success) {
+                toast.success("Theme settings saved!");
+            } else {
+                toast.error(res.message || "Failed to save theme settings");
+            }
+        } catch {
+            toast.error("Failed to save theme settings");
+        } finally {
+            setThemeSaving(false);
+        }
+    };
+
+    const toggleThemeEnabled = (themeId: string) => {
+        setEnabledThemes((prev) => {
+            if (prev.includes(themeId)) {
+                // Don't allow disabling the default theme
+                if (themeId === defaultTheme) {
+                    toast.error("Cannot disable the default theme");
+                    return prev;
+                }
+                // Must keep at least 1 enabled
+                if (prev.length <= 1) {
+                    toast.error("At least one theme must be enabled");
+                    return prev;
+                }
+                return prev.filter((id) => id !== themeId);
+            }
+            return [...prev, themeId];
+        });
+    };
+
+    const handleThemeReset = () => {
+        const allIds = getAllThemes().map(t => t.id);
+        setDefaultTheme("classic-red");
+        setEnabledThemes(allIds);
+        toast.info("Theme settings reset to defaults (save to apply)");
+    };
+
+    // ─── Countdown helpers ───
+    const handleCountdownSave = async () => {
+        if (countdownDays < 1 || countdownDays > 365) {
+            toast.error("Days must be between 1 and 365");
+            return;
+        }
+        try {
+            setCountdownSaving(true);
+            const res = await setCountdown({
+                days: countdownDays,
+                title: countdownTitle || undefined,
+                titleTa: countdownTitleTa || undefined,
+                description: countdownDesc || undefined,
+            });
+            if (res.success) {
+                toast.success("Countdown activated!");
+                setCountdownActive(true);
+                setCountdownEndDate(res.data?.offerEndDate || null);
+            } else {
+                toast.error(res.message || "Failed to set countdown");
+            }
+        } catch {
+            toast.error("Failed to set countdown");
+        } finally {
+            setCountdownSaving(false);
+        }
+    };
+
+    const handleCountdownDisable = async () => {
+        try {
+            setCountdownSaving(true);
+            const res = await disableCountdown();
+            if (res.success) {
+                toast.success("Countdown disabled");
+                setCountdownActive(false);
+                setCountdownEndDate(null);
+            } else {
+                toast.error(res.message || "Failed to disable countdown");
+            }
+        } catch {
+            toast.error("Failed to disable countdown");
+        } finally {
+            setCountdownSaving(false);
+        }
     };
 
     if (loading) {
@@ -487,6 +608,199 @@ const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = () => {
                             <Button variant="outline" onClick={addGalleryImage} className="w-full gap-2">
                                 <Plus className="h-4 w-4" /> Add Image
                             </Button>
+                        </CardContent>
+                    </CollapsibleContent>
+                </Card>
+            </Collapsible>
+
+            {/* ─────── THEME MANAGEMENT ─────── */}
+            <Collapsible open={themeOpen} onOpenChange={setThemeOpen}>
+                <Card>
+                    <CollapsibleTrigger asChild>
+                        <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                                        <Palette className="h-5 w-5 text-indigo-500" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-base">Theme Management</CardTitle>
+                                        <p className="text-xs text-muted-foreground mt-0.5">{enabledThemes.length} of {getAllThemes().length} themes enabled</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    {themeOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                </div>
+                            </div>
+                        </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                        <CardContent className="space-y-4 pt-0">
+                            {/* Default theme selector */}
+                            <div className="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10 space-y-2">
+                                <Label className="text-sm font-semibold">Default Theme</Label>
+                                <Select value={defaultTheme} onValueChange={setDefaultTheme}>
+                                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {getAllThemes().filter(t => enabledThemes.includes(t.id)).map((t) => (
+                                            <SelectItem key={t.id} value={t.id}>{t.emoji} {t.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">New visitors will see this theme. Only enabled themes can be default.</p>
+                            </div>
+
+                            {/* Theme toggles */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {getAllThemes().map((theme) => {
+                                    const isEnabled = enabledThemes.includes(theme.id);
+                                    const isDefault = defaultTheme === theme.id;
+                                    return (
+                                        <div
+                                            key={theme.id}
+                                            className={`flex items-center justify-between p-3 rounded-xl border transition-all ${isEnabled ? "bg-card border-border" : "bg-muted/30 border-border/30 opacity-60"}`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div
+                                                    className="w-8 h-8 rounded-lg border shadow-sm flex items-center justify-center text-sm"
+                                                    style={{ background: theme.preview || '#666' }}
+                                                >
+                                                    {theme.emoji}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium">{theme.name}</p>
+                                                    {isDefault && (
+                                                        <Badge variant="default" className="text-[10px] h-4 px-1.5">Default</Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {isEnabled ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <X className="h-3.5 w-3.5 text-muted-foreground" />}
+                                                <Switch
+                                                    checked={isEnabled}
+                                                    onCheckedChange={() => toggleThemeEnabled(theme.id)}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-2">
+                                <Button onClick={handleThemeSave} disabled={themeSaving} className="gap-2 flex-1">
+                                    {themeSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                    Save Theme Settings
+                                </Button>
+                                <Button variant="outline" onClick={handleThemeReset} className="gap-2">
+                                    <RotateCcw className="h-4 w-4" /> Reset
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </CollapsibleContent>
+                </Card>
+            </Collapsible>
+
+            {/* ─────── COUNTDOWN MANAGEMENT ─────── */}
+            <Collapsible open={countdownOpen} onOpenChange={setCountdownOpen}>
+                <Card>
+                    <CollapsibleTrigger asChild>
+                        <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center">
+                                        <Timer className="h-5 w-5 text-rose-500" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-base">Countdown Timer</CardTitle>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            {countdownActive ? (
+                                                <span className="text-emerald-500 font-medium">Active — expires {countdownEndDate ? new Date(countdownEndDate).toLocaleDateString() : "N/A"}</span>
+                                            ) : (
+                                                "No active countdown"
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    {countdownActive && (
+                                        <Badge variant="default" className="bg-emerald-500 text-xs">Live</Badge>
+                                    )}
+                                    {countdownOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                </div>
+                            </div>
+                        </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                        <CardContent className="space-y-4 pt-0">
+                            {/* Current status */}
+                            {countdownActive && countdownEndDate && (
+                                <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className="h-4 w-4 text-emerald-500" />
+                                        <div>
+                                            <p className="text-sm font-medium">Countdown Active</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Ends: {new Date(countdownEndDate).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button variant="destructive" size="sm" onClick={handleCountdownDisable} disabled={countdownSaving} className="gap-1">
+                                        {countdownSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                                        Disable
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Set new countdown */}
+                            <div className="space-y-3 p-4 rounded-xl border bg-muted/20">
+                                <p className="text-sm font-semibold">{countdownActive ? "Replace" : "Create"} Countdown</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <Label className="text-xs">Duration (Days)</Label>
+                                        <Input
+                                            type="number"
+                                            min={1}
+                                            max={365}
+                                            value={countdownDays}
+                                            onChange={(e) => setCountdownDays(Number(e.target.value))}
+                                            className="h-9"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground mt-0.5">1–365 days from now</p>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs">Offer Title (English)</Label>
+                                        <Input
+                                            value={countdownTitle}
+                                            onChange={(e) => setCountdownTitle(e.target.value)}
+                                            className="h-9"
+                                            placeholder="e.g. Weekend Special Sale"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs">Offer Title (Tamil)</Label>
+                                        <Input
+                                            value={countdownTitleTa}
+                                            onChange={(e) => setCountdownTitleTa(e.target.value)}
+                                            className="h-9"
+                                            placeholder="e.g. வார இறுதி சிறப்பு விற்பனை"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs">Description</Label>
+                                        <Input
+                                            value={countdownDesc}
+                                            onChange={(e) => setCountdownDesc(e.target.value)}
+                                            className="h-9"
+                                            placeholder="e.g. Up to 30% off on sweets!"
+                                        />
+                                    </div>
+                                </div>
+                                <Button onClick={handleCountdownSave} disabled={countdownSaving} className="gap-2 w-full">
+                                    {countdownSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Timer className="h-4 w-4" />}
+                                    {countdownActive ? "Replace & Restart Countdown" : "Start Countdown"}
+                                </Button>
+                            </div>
                         </CardContent>
                     </CollapsibleContent>
                 </Card>

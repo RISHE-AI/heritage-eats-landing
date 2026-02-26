@@ -9,12 +9,12 @@ interface ImageCarouselProps {
     aspectRatio?: string; // e.g. "aspect-square" or "aspect-[4/3]"
 }
 
-const BACKEND = "https://heritage-eats-landing-1.onrender.com";
+import { BACKEND_URL } from "@/services/api";
 
 function resolveImageSrc(img: string): string {
     if (!img || img === "/placeholder.svg") return "/placeholder.svg";
     if (img.startsWith("http") || img.startsWith("/images/") || img.startsWith("/placeholder")) return img;
-    return `${BACKEND}/${img.replace(/^\//, "")}`;
+    return `${BACKEND_URL}/${img.replace(/^\//, "")}`;
 }
 
 const ImageCarousel: React.FC<ImageCarouselProps> = ({

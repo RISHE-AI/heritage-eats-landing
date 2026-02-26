@@ -91,7 +91,7 @@ const productSchema = new mongoose.Schema({
     },
     badge: {
         type: String,
-        enum: [null, 'new', 'hot', 'top-seller', 'limited', 'custom'],
+        enum: [null, 'new', 'hot', 'top-seller', 'limited', 'offer', 'custom'],
         default: null
     },
     totalSold: {

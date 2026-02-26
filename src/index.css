@@ -11,6 +11,21 @@
    ============================================================ */
 
 @layer base {
+  /* ─── MULTI-THEME SYSTEM CSS VARIABLES ─── */
+  :root {
+    /* Core theme colors from theme config */
+    --color-primary: #C0392B;
+    --color-primary-dark: #8B0000;
+    --color-primary-light: #E74C3C;
+    --color-bg-main: #FFFFFF;
+    --color-bg-secondary: #F8F6F4;
+    --color-text-main: #2C3E50;
+    --color-text-muted: #95A5A6;
+    
+    /* Transition settings */
+    --transition-smooth: 0.3s ease;
+  }
+
   /* ─── DEFAULT: Light Mode Base (no theme attribute) ─── */
   :root {
     --background: 36 33% 96%;
@@ -159,6 +174,10 @@
     --sidebar-accent-foreground: 0 0% 90%;
     --sidebar-border: 0 0% 10%;
     --sidebar-ring: 0 55% 55%;
+
+    /* Multi-theme dark mode adjustments */
+    --color-bg-main: #0A0A0A;
+    --color-bg-secondary: #1A1A1A;
   }
 
   /* ─── Dark Mode Theme Color Overrides ─── */
@@ -220,10 +239,40 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', sans-serif;
+    transition: background-color var(--transition-smooth), color var(--transition-smooth);
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Playfair Display', serif;
+  }
+
+  /* ─── Theme Transition System ─── */
+  .theme-transition,
+  .theme-transition *,
+  .theme-transition *::before,
+  .theme-transition *::after {
+    transition: background-color var(--transition-smooth), 
+                color var(--transition-smooth),
+                border-color var(--transition-smooth) !important;
+  }
+
+  button,
+  a {
+    transition: color var(--transition-smooth), 
+                background-color var(--transition-smooth),
+                transform 0.2s ease;
+  }
+
+  button:hover {
+    transform: translateY(-1px);
+  }
+
+  .card,
+  .modal,
+  .dialog-content {
+    transition: background-color var(--transition-smooth), 
+                border-color var(--transition-smooth),
+                box-shadow 0.3s ease;
   }
 }
 
@@ -660,5 +709,39 @@
     .pb-safe-bottom {
       padding-bottom: 0;
     }
+  }
+
+  /* ─── Professional Animations ─── */
+  @keyframes fade-in-up {
+    0% { opacity: 0; transform: translateY(24px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s ease-out;
+  }
+
+  @keyframes scale-in {
+    0% { opacity: 0; transform: scale(0.85); }
+    50% { transform: scale(1.05); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .animate-scale-in {
+    animation: scale-in 0.4s ease-out;
+  }
+
+  @keyframes slide-in-left {
+    0% { opacity: 0; transform: translateX(-40px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  .animate-slide-in-left {
+    animation: slide-in-left 0.5s ease-out;
+  }
+
+  @keyframes slide-in-right {
+    0% { opacity: 0; transform: translateX(40px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  .animate-slide-in-right {
+    animation: slide-in-right 0.5s ease-out;
   }
 }

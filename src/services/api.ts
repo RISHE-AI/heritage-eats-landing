@@ -1,5 +1,7 @@
 // API Service Layer - Centralized backend communication
-const API_BASE = 'https://heritage-eats-landing-1.onrender.com';
+const API_BASE = (import.meta.env.VITE_API_BASE || 'http://localhost:5000/api').replace(/\/$/, '');
+// Exported for image URL resolution in other components (strips /api suffix)
+export const BACKEND_URL = API_BASE.replace(/\/api$/, '');
 
 const getAuthHeaders = (): HeadersInit => {
     const token = localStorage.getItem('auth_token');
@@ -358,6 +360,28 @@ export const sendChatMessage = async (message: string) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message })
+    });
+    return handleResponse(res);
+};
+
+// ========== SITE SETTINGS ==========
+export const fetchSiteSettings = async () => {
+    const res = await fetch(`${API_BASE}/site-settings`);
+    return handleResponse(res);
+};
+
+export const updateSiteSettings = async (data: any) => {
+    const res = await fetch(`${API_BASE}/site-settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...getAdminHeaders() },
+        body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+};
+
+export const fetchComputedStats = async () => {
+    const res = await fetch(`${API_BASE}/site-settings/computed-stats`, {
+        headers: getAdminHeaders()
     });
     return handleResponse(res);
 };

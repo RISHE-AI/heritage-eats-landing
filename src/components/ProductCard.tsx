@@ -7,7 +7,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { cn } from "@/lib/utils";
 import StarRating from "./StarRating";
-import { fetchReviewStats } from "@/services/api";
+import { fetchReviewStats, BACKEND_URL } from "@/services/api";
 
 interface ProductCardProps {
   product: Product;
@@ -15,20 +15,19 @@ interface ProductCardProps {
   variant?: "card" | "list";
 }
 
-const BADGE_STYLES: Record<string, { bg: string; text: string; animation: string }> = {
-  new: { bg: 'bg-emerald-500', text: 'New', animation: 'animate-pulse' },
-  hot: { bg: 'bg-red-500', text: '🔥 Hot', animation: '' },
-  'top-seller': { bg: 'bg-amber-500', text: '⭐ Top Seller', animation: '' },
-  limited: { bg: 'bg-purple-500', text: 'Limited', animation: 'animate-pulse' },
-  custom: { bg: 'bg-blue-500', text: 'Special', animation: '' },
+const BADGE_STYLES: Record<string, { bg: string; icon: string; label: string; animation: string; border: string }> = {
+  new: { bg: 'bg-emerald-500', icon: '🆕', label: 'NEW', animation: 'animate-pulse', border: 'ring-emerald-300' },
+  hot: { bg: 'bg-red-500', icon: '🔥', label: 'HOT', animation: '', border: 'ring-red-300' },
+  'top-seller': { bg: 'bg-amber-500', icon: '⭐', label: 'TOP', animation: '', border: 'ring-amber-300' },
+  limited: { bg: 'bg-purple-500', icon: '⏳', label: 'LTD', animation: 'animate-pulse', border: 'ring-purple-300' },
+  offer: { bg: 'bg-pink-500', icon: '🏷️', label: 'OFFER', animation: '', border: 'ring-pink-300' },
+  custom: { bg: 'bg-blue-500', icon: '✨', label: 'SPECIAL', animation: '', border: 'ring-blue-300' },
 };
-
-const BACKEND_BASE = 'https://heritage-eats-landing-1.onrender.com';
 
 function resolveImage(img: string | undefined): string {
   if (!img || img === '/placeholder.svg') return '/placeholder.svg';
   if (img.startsWith('http') || img.startsWith('/images/') || img.startsWith('/placeholder')) return img;
-  return `${BACKEND_BASE}/${img.replace(/^\//, '')}`;
+  return `${BACKEND_URL}/${img.replace(/^\//, '')}`;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant = "card" }) => {
@@ -105,12 +104,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
             onError={handleCardImageError}
           />
           {badge && (
-            <span className={cn(
-              "absolute top-1 left-1 px-1.5 py-0.5 rounded-full text-white text-[8px] font-bold",
-              badge.bg, badge.animation
+            <div className={cn(
+              "absolute -top-1.5 -left-1.5 w-9 h-9 rounded-full flex flex-col items-center justify-center text-white shadow-lg ring-2 ring-white/50 z-10",
+              badge.bg, badge.animation, badge.border
             )}>
-              {badge.text}
-            </span>
+              <span className="text-[10px] leading-none">{badge.icon}</span>
+              <span className="text-[6px] font-black leading-none mt-px">{badge.label}</span>
+            </div>
           )}
           {!isAvailable && (
             <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
@@ -193,16 +193,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
           onError={handleCardImageError}
         />
 
-        {/* Badge */}
+        {/* Badge Sticker */}
         {badge && (
-          <span
+          <div
             className={cn(
-              "absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full text-white text-[10px] md:text-xs font-bold shadow-lg z-10",
-              badge.bg, badge.animation
+              "absolute -top-1 -left-1 w-12 h-12 md:w-14 md:h-14 rounded-full flex flex-col items-center justify-center text-white shadow-xl ring-2 ring-white/60 z-10 transform -rotate-12",
+              badge.bg, badge.animation, badge.border
             )}
           >
-            {badge.text}
-          </span>
+            <span className="text-sm md:text-base leading-none">{badge.icon}</span>
+            <span className="text-[7px] md:text-[8px] font-black leading-none mt-0.5 tracking-tight">{badge.label}</span>
+          </div>
         )}
 
         {/* Wishlist Button */}

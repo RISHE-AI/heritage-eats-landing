@@ -82,13 +82,37 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
 
         <div className="grid gap-0 md:grid-cols-2">
           {/* ── Image Carousel ── */}
-          <div className="bg-secondary/10 md:rounded-l-2xl flex flex-col justify-center overflow-hidden">
+          <div className="bg-secondary/10 md:rounded-l-2xl flex flex-col justify-center overflow-hidden relative">
             <ImageCarousel
               images={product.images}
               productName={product.nameEn}
               aspectRatio="aspect-square"
               className="w-full h-full"
             />
+            {/* Badge Sticker */}
+            {(() => {
+              const MODAL_BADGES: Record<string, { bg: string; icon: string; label: string; animation: string; border: string }> = {
+                new: { bg: 'bg-emerald-500', icon: '🆕', label: 'NEW', animation: 'animate-pulse', border: 'ring-emerald-300' },
+                hot: { bg: 'bg-red-500', icon: '🔥', label: 'HOT', animation: '', border: 'ring-red-300' },
+                'top-seller': { bg: 'bg-amber-500', icon: '⭐', label: 'TOP', animation: '', border: 'ring-amber-300' },
+                limited: { bg: 'bg-purple-500', icon: '⏳', label: 'LTD', animation: 'animate-pulse', border: 'ring-purple-300' },
+                offer: { bg: 'bg-pink-500', icon: '🏷️', label: 'OFFER', animation: '', border: 'ring-pink-300' },
+                custom: { bg: 'bg-blue-500', icon: '✨', label: 'SPECIAL', animation: '', border: 'ring-blue-300' },
+              };
+              const b = product.badge && MODAL_BADGES[product.badge];
+              if (!b) return null;
+              return (
+                <div
+                  className={cn(
+                    "absolute top-3 left-3 w-14 h-14 md:w-16 md:h-16 rounded-full flex flex-col items-center justify-center text-white shadow-xl ring-2 ring-white/60 z-20 transform -rotate-12",
+                    b.bg, b.animation, b.border
+                  )}
+                >
+                  <span className="text-base md:text-lg leading-none">{b.icon}</span>
+                  <span className="text-[7px] md:text-[8px] font-black leading-none mt-0.5 tracking-tight">{b.label}</span>
+                </div>
+              );
+            })()}
           </div>
 
           {/* ── Product Info ── */}
@@ -196,7 +220,7 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
                 maxLength={200}
               />
             </div>
-            
+
 
             {/* Add to Cart */}
             <Button

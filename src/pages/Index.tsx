@@ -3,8 +3,11 @@ import { Product, transformProduct } from "@/types/product";
 import { fetchProducts } from "@/services/api";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
+import SpecialOffers from "@/components/SpecialOffers";
+import StatsCounter from "@/components/StatsCounter";
 import ProductSection from "@/components/ProductSection";
 import ProductModal from "@/components/ProductModal";
+import GallerySection from "@/components/GallerySection";
 import FeedbackSection from "@/components/FeedbackSection";
 import Footer from "@/components/Footer";
 import Chatbot from "@/components/Chatbot";
@@ -74,6 +77,11 @@ const Index: React.FC = () => {
       <Header />
       <main>
         <Hero />
+
+        <SpecialOffers />
+        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+        <StatsCounter />
+        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
         {loading ? (
           <div className="container px-4 py-12 space-y-6">
@@ -180,7 +188,11 @@ const Index: React.FC = () => {
           onClear={clearRecentlyViewed}
         />
 
+        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+        <GallerySection />
+
         <FeedbackSection />
+
       </main>
 
       <Footer />

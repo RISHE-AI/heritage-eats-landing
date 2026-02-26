@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { fetchProducts as apiFetchProducts, createProduct, updateProduct, uploadProductImage } from '@/services/api';
+import { fetchProducts as apiFetchProducts, createProduct, updateProduct, uploadProductImage, BACKEND_URL } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -307,9 +307,16 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
                       <h3 className="font-semibold text-sm truncate">{product.nameEn}</h3>
                       <p className="text-xs text-muted-foreground truncate">{product.nameTa}</p>
                     </div>
-                    <Badge variant="outline" className="shrink-0 text-xs">
-                      {product.category}
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="outline" className="shrink-0 text-xs">
+                        {product.category}
+                      </Badge>
+                      {product.badge && (
+                        <Badge className="shrink-0 text-[9px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
+                          {product.badge}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <p className="text-base font-bold mt-1">₹{product.price}</p>
                   <div className="flex items-center justify-between mt-2">
@@ -486,6 +493,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
                             <SelectItem value="hot">🔥 Hot</SelectItem>
                             <SelectItem value="top-seller">⭐ Top Seller</SelectItem>
                             <SelectItem value="limited">⏳ Limited</SelectItem>
+                            <SelectItem value="offer">🏷️ Offer</SelectItem>
                             <SelectItem value="custom">✨ Custom</SelectItem>
                           </SelectContent>
                         </Select>
@@ -616,7 +624,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
                           {(editingProduct.images || []).filter(img => img && img.trim() && img !== '/placeholder.svg').map((img) => {
                             // Find the original index in the unfiltered array for correct removal
                             const originalIdx = (editingProduct.images || []).indexOf(img);
-                            const BACKEND = 'https://heritage-eats-landing-1.onrender.com';
+                            const BACKEND = BACKEND_URL;
                             const src = img.startsWith('http') ? img : `${BACKEND}/${img}`;
                             return (
                               <div key={originalIdx} className="relative group">

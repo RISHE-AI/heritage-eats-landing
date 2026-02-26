@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Star,
-  LogOut, Lock, Eye, EyeOff, TrendingUp, DollarSign
+  LogOut, Lock, Eye, EyeOff, TrendingUp, DollarSign, Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AdminDashboard from '@/components/admin/AdminDashboard';
@@ -16,6 +16,7 @@ import AdminOrders from '@/components/admin/AdminOrders';
 import AdminProducts from '@/components/admin/AdminProducts';
 import AdminCustomers from '@/components/admin/AdminCustomers';
 import AdminReviews from '@/components/admin/AdminReviews';
+import AdminSiteSettings from '@/components/admin/AdminSiteSettings';
 
 const Admin: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -141,7 +142,7 @@ const Admin: React.FC = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
             <TabsTrigger value="dashboard" className="gap-2">
               <TrendingUp className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard</span>
@@ -161,6 +162,10 @@ const Admin: React.FC = () => {
             <TabsTrigger value="reviews" className="gap-2">
               <Star className="h-4 w-4" />
               <span className="hidden sm:inline">Reviews</span>
+            </TabsTrigger>
+            <TabsTrigger value="site" className="gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Site</span>
             </TabsTrigger>
           </TabsList>
 
@@ -182,6 +187,10 @@ const Admin: React.FC = () => {
 
           <TabsContent value="reviews">
             <AdminReviews password={password} onLogout={handleLogout} />
+          </TabsContent>
+
+          <TabsContent value="site">
+            <AdminSiteSettings password={password} onLogout={handleLogout} />
           </TabsContent>
         </Tabs>
       </main>

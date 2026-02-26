@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Star, Shield, Quote, Send, Loader2, CheckCircle2, ImagePlus, X } from "lucide-react";
-import { fetchAllReviews, submitReview } from "@/services/api";
+import { Star, Shield, Quote, Send, Loader2, ImagePlus, X } from "lucide-react";
+import { fetchAllReviews, submitReview, BACKEND_URL } from "@/services/api";
 import { toast } from "sonner";
 
 interface Review {
@@ -18,11 +18,11 @@ interface Review {
   type?: string;
 }
 
-const DUPLICATE_KEY = "maghizam_overall_review_submitted";
+
 
 /* ─── Single Review Card ─── */
 const ReviewCard: React.FC<{ review: Review }> = ({ review }) => {
-  const BACKEND = 'https://heritage-eats-landing-1.onrender.com';
+  const BACKEND = BACKEND_URL;
   return (
     <Card className="rounded-2xl shadow-card flex-shrink-0 w-[300px] sm:w-[320px] md:w-[340px] snap-center">
       <CardContent className="p-4">
@@ -121,12 +121,9 @@ const FeedbackSection: React.FC = () => {
   const [reviewImageFile, setReviewImageFile] = useState<File | null>(null);
   const [reviewImagePreview, setReviewImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setAlreadySubmitted(!!localStorage.getItem(DUPLICATE_KEY));
     fetchAllReviews()
       .then(res => {
         if (res.success) setReviews(res.data);
@@ -183,10 +180,13 @@ const FeedbackSection: React.FC = () => {
         reviewImage: reviewImageFile,
       });
       if (res.success) {
-        localStorage.setItem(DUPLICATE_KEY, "1");
-        setAlreadySubmitted(true);
-        setSubmitSuccess(true);
         toast.success("Thank you for your review! 🎉");
+        setReviewName("");
+        setReviewRating(0);
+        setReviewComment("");
+        setReviewImageFile(null);
+        setReviewImagePreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
         const updated = await fetchAllReviews();
         if (updated.success) setReviews(updated.data);
       } else {
@@ -303,20 +303,7 @@ const FeedbackSection: React.FC = () => {
             <div className="mx-auto mt-2 h-0.5 w-12 rounded-full bg-gradient-to-r from-transparent via-primary to-transparent" />
           </div>
 
-          {submitSuccess || alreadySubmitted ? (
-            <Card className="rounded-2xl shadow-card border border-emerald-200/40 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-950/20">
-              <CardContent className="p-6 text-center">
-                <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-3" />
-                <h4 className="font-semibold text-emerald-800 dark:text-emerald-300 mb-1">Thank you for your review!</h4>
-                <p className="text-sm text-emerald-700/70 dark:text-emerald-500">
-                  Your feedback helps us serve you better. 🙏
-                </p>
-                <p className="text-xs text-emerald-600/60 dark:text-emerald-600 tamil-text mt-1">
-                  உங்கள் கருத்திற்கு நன்றி!
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
+          {(
             <Card className="rounded-2xl shadow-card">
               <CardContent className="p-5">
                 <form onSubmit={handleSubmitReview} className="space-y-4">

@@ -63,6 +63,7 @@ app.use('/api/chat', require('./routes/chatRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
 app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api/site-settings', require('./routes/siteSettingsRoutes'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

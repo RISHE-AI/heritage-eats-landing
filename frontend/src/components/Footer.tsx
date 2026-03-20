@@ -1,7 +1,9 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Phone, Mail, MapPin, Heart } from "lucide-react";
 
 const Footer: React.FC = () => {
+  const navigate = useNavigate();
   return (
     <footer className="bg-foreground text-background pb-safe-bottom">
       {/* Main Footer */}
@@ -86,7 +88,14 @@ const Footer: React.FC = () => {
         <div className="container px-4 py-4 md:py-5">
           <div className="flex flex-col md:flex-row items-center justify-between gap-2 text-center">
             <p className="text-xs md:text-sm text-background/50">
-              © 2024 Maghizam Homemade Delights. All rights reserved.
+              © 2024 Maghizam Homemade Delights. All rights reserved
+              <span 
+                onClick={() => navigate('/admin')} 
+                className="cursor-pointer opacity-0 hover:opacity-10 transition-opacity p-2"
+                title="Admin Access"
+              >
+                .
+              </span>
             </p>
             <p className="text-[10px] text-background/30 tamil-text flex items-center gap-1">
               Made with <Heart className="h-3 w-3 text-destructive inline fill-current" /> in Tamil Nadu

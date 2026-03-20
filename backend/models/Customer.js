@@ -9,8 +9,7 @@ const customerSchema = new mongoose.Schema({
     },
     phone: {
         type: String,
-        trim: true,
-        sparse: true
+        trim: true
     },
     email: {
         type: String,
@@ -27,8 +26,7 @@ const customerSchema = new mongoose.Schema({
         minlength: [4, 'Password must be at least 4 characters']
     },
     googleId: {
-        type: String,
-        sparse: true
+        type: String
     },
     totalOrders: {
         type: Number,

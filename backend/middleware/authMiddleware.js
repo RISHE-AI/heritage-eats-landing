@@ -38,4 +38,26 @@ const adminOnly = (req, res, next) => {
     }
 };
 
-module.exports = { protect, adminOnly };
+// Optional auth - extracts user if token present, but does NOT reject unauthenticated requests
+const optionalProtect = async (req, res, next) => {
+    let token;
+    req.customer = null;
+
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        try {
+            token = req.headers.authorization.split(' ')[1];
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'homemade_delights_secret_2024');
+
+            if (!decoded.isAdmin) {
+                req.customer = await Customer.findById(decoded.id).select('-password');
+            }
+        } catch (error) {
+            // Token invalid/expired - continue as guest
+            req.customer = null;
+        }
+    }
+
+    next();
+};
+
+module.exports = { protect, adminOnly, optionalProtect };

@@ -12,8 +12,7 @@ dotenv.config();
 connectDB();
 
 // Initialize Telegram Bot
-const { initBot } = require('./services/telegramBot');
-initBot();
+// Removed Telegram integration
 
 const app = express();
 
@@ -64,6 +63,10 @@ app.use('/api/cart', require('./routes/cartRoutes'));
 app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/site-settings', require('./routes/siteSettingsRoutes'));
+
+// New Routes
+app.use('/api/tracking', require('./routes/trackingRoutes'));
+app.use('/api/about', require('./routes/aboutRoutes'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

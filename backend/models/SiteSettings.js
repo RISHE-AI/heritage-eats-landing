@@ -6,9 +6,17 @@ const offerSchema = new mongoose.Schema({
     titleTa: { type: String, default: '' },
     description: { type: String, default: '' },
     discount: { type: String, default: '' },
+    discountPercent: { type: Number, default: 0 }, // Numeric discount percentage
+    originalPrice: { type: Number, default: 0 }, // Original price before discount
+    discountedPrice: { type: Number, default: 0 }, // Price after discount
     color: { type: String, default: 'from-amber-500/20 to-orange-500/20' },
-    active: { type: Boolean, default: true }
-}, { _id: false });
+    image: { type: String, default: '' },
+    productId: { type: String, default: '' }, // Link to product
+    active: { type: Boolean, default: true },
+    // Individual countdown timer for each offer
+    offerStartTime: { type: Date, default: null },
+    offerEndTime: { type: Date, default: null }
+}, { _id: true });
 
 const statSchema = new mongoose.Schema({
     icon: { type: String, default: '📊' },

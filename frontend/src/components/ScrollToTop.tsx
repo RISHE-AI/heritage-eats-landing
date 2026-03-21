@@ -35,7 +35,7 @@ const ScrollToTop: React.FC = () => {
     <button
       onClick={scrollToTop}
       className={cn(
-        "fixed bottom-24 left-4 md:left-auto md:right-6 z-40 transition-all duration-300 group",
+        "fixed bottom-16 md:bottom-24 left-4 md:left-auto md:right-6 z-40 transition-all duration-300 group",
         isVisible
           ? "opacity-100 translate-y-0"
           : "opacity-0 translate-y-4 pointer-events-none"

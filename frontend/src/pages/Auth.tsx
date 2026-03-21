@@ -195,8 +195,8 @@ const Auth: React.FC = () => {
 
         <div className="relative z-10 text-center max-w-sm">
           {/* Logo */}
-          <div className="w-24 h-24 rounded-3xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-6 shadow-2xl border border-white/30">
-            <span className="text-5xl">🍯</span>
+          <div className="w-24 h-24 rounded-3xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-6 shadow-2xl border border-white/30 overflow-hidden">
+            <img src="/maghizam-logo.png" alt="Maghizam Foods Logo" className="w-full h-full object-cover" />
           </div>
 
           <h1 className="font-serif text-3xl font-bold mb-2">Maghizam</h1>
@@ -232,7 +232,7 @@ const Auth: React.FC = () => {
           </Button>
           {/* Mobile brand */}
           <div className="flex items-center gap-2 lg:hidden">
-            <span className="text-xl">🍯</span>
+            <img src="/maghizam-logo.png" alt="Maghizam Foods Logo" className="h-7 w-7 object-cover rounded-full" />
             <span className="font-serif text-sm font-bold text-foreground">Maghizam</span>
           </div>
           <div className="w-20" />

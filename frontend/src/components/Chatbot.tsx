@@ -237,7 +237,7 @@ const Chatbot: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "fixed z-[9999] flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-110",
-          "bottom-20 right-4 md:bottom-6 md:right-6",
+          "bottom-16 right-4 md:bottom-6 md:right-6",
           isOpen
             ? "bg-destructive text-destructive-foreground"
             : "bg-primary text-primary-foreground"
@@ -260,7 +260,7 @@ const Chatbot: React.FC = () => {
       <div
         className={cn(
           "fixed z-[9999] w-[380px] max-w-[calc(100vw-2rem)] rounded-2xl bg-background border shadow-2xl transition-all duration-300",
-          "bottom-36 right-4 md:bottom-24 md:right-6",
+          "bottom-32 right-4 md:bottom-24 md:right-6",
           isOpen
             ? "opacity-100 translate-y-0 pointer-events-auto"
             : "opacity-0 translate-y-4 pointer-events-none"

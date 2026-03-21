@@ -273,4 +273,96 @@ const sendOrderEmail = async (orderData) => {
     }
 };
 
-module.exports = { sendOrderEmail };
+const sendBulkOrderEmail = async (bulkData) => {
+    try {
+        const emailUser = process.env.EMAIL_USER;
+        const emailPass = process.env.EMAIL_PASS;
+        const adminEmail = process.env.ADMIN_EMAIL || 'contact.tdhms@gmail.com';
+        const apiUrl = process.env.EMAIL_API_URL;
+
+        const subject = `📥 New Bulk Order Request from ${bulkData.name} | Maghizam`;
+
+        const htmlBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #7B2D00, #C0392B); padding: 16px; text-align: center; color: #fff;">
+                <h1 style="margin: 0; font-size: 22px;">New Bulk Order Inquiry</h1>
+            </div>
+            
+            <div style="padding: 16px;">
+                <h3 style="border-bottom: 2px solid #ccc; padding-bottom: 5px;">Customer Contact</h3>
+                <p><strong>Name:</strong> ${bulkData.name}</p>
+                <p><strong>Phone:</strong> ${bulkData.phone}</p>
+                <p><strong>Email:</strong> ${bulkData.email || 'N/A'}</p>
+                <p><strong>Address:</strong> ${bulkData.address || 'N/A'}</p>
+                
+                <h3 style="border-bottom: 2px solid #ccc; padding-bottom: 5px; margin-top: 24px;">Items Requested</h3>
+                <ul style="padding-left: 20px;">
+                    ${bulkData.items.map(item => `
+                        <li style="margin-bottom: 6px;">
+                            <strong>${item.name}</strong> (${item.weight}) — ${item.quantity} Qty @ ₹${item.price} each = ₹${item.price * item.quantity}
+                        </li>
+                    `).join('')}
+                </ul>
+                
+                <div style="background: #f9f9f9; padding: 16px; margin-top: 24px; border-radius: 8px;">
+                    <h3 style="margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 5px;">Financial Summary</h3>
+                    <p style="margin: 6px 0;"><strong>Subtotal:</strong> ₹${bulkData.subtotal}</p>
+                    <p style="margin: 6px 0;"><strong>Est. Courier Charge:</strong> ₹${bulkData.courierCharge}</p>
+                    <p style="margin: 10px 0 0; font-size: 1.25em; color: #27ae60;"><strong>Estimated Total: <span style="font-weight: 900;">₹${bulkData.total}</span></strong></p>
+                </div>
+                
+                <h3 style="border-bottom: 2px solid #ccc; padding-bottom: 5px; margin-top: 24px;">Message/Requirements</h3>
+                <p style="white-space: pre-wrap; font-style: italic; color: #555;">${bulkData.message || 'No additional message provided.'}</p>
+            </div>
+        </div>
+        `;
+
+        const recipients = adminEmail.split(',').map(e => e.trim());
+        if (!recipients.includes('contact.tdhms@gmail.com')) {
+             recipients.push('contact.tdhms@gmail.com');
+        }
+
+        // Option 1: HTTP API Relay
+        if (apiUrl) {
+            const fetch = global.fetch || require('node-fetch');
+            const relayResponse = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: recipients.join(','),
+                    subject,
+                    htmlBody
+                })
+            });
+            const result = await relayResponse.json();
+            if (result.status === 'success' || relayResponse.ok) {
+                console.log('✅ Bulk Order Email forwarded via API Relay.');
+            } else {
+                throw new Error('API Relay failed to send.' + JSON.stringify(result));
+            }
+            return;
+        }
+
+        // Option 2: NodeMailer SMTP
+        if (!emailUser || !emailPass || emailUser === 'your_gmail@gmail.com') {
+            const err = new Error('SMTP Email not properly configured — skipping physical bulk email');
+            console.warn(err.message);
+            throw err;
+        }
+
+        const transporter = createTransporter();
+        await transporter.sendMail({
+            from: `"Maghizam Notifications" <${emailUser}>`,
+            to: recipients.join(', '),
+            subject,
+            html: htmlBody
+        });
+        console.log('✅ Bulk Order Email sent via SMTP.');
+
+    } catch (error) {
+        console.error('❌ Failed to send bulk order email:', error.message);
+        throw error;
+    }
+};
+
+module.exports = { sendOrderEmail, sendBulkOrderEmail };

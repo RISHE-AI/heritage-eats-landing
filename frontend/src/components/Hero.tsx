@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Phone, Shield, Truck, Leaf, Heart, Award } from "lucide-react";
+import { ChevronDown, Phone, Shield, Truck, Leaf, Heart, Award, Package, Building2, ShoppingBag } from "lucide-react";
 
 const TRUST_BADGES = [
   { icon: "🏠", Icon: null, textEn: "100% Homemade", textTa: "வீட்டு செய்முறை", delay: 0 },
@@ -111,6 +112,27 @@ const Hero: React.FC = () => {
                 <span>WhatsApp Us</span>
               </Button>
             </a>
+          </div>
+
+          <div className="mt-3 md:mt-4 flex flex-col sm:flex-row items-center gap-3 justify-center animate-fade-in px-4">
+             <Link to="/track" className="w-full sm:w-auto">
+                <Button variant="secondary" size="lg" className="w-full gap-2 text-sm md:text-base btn-lift h-11 md:h-12 rounded-xl border border-border/50 bg-secondary/80 hover:bg-secondary">
+                   <Package className="h-4 w-4 md:h-5 md:w-5" />
+                   <span>Track Order</span>
+                </Button>
+             </Link>
+             <Link to="/about" className="w-full sm:w-auto">
+                <Button variant="secondary" size="lg" className="w-full gap-2 text-sm md:text-base btn-lift h-11 md:h-12 rounded-xl border border-border/50 bg-secondary/80 hover:bg-secondary">
+                   <Building2 className="h-4 w-4 md:h-5 md:w-5" />
+                   <span>About Us</span>
+                </Button>
+             </Link>
+             <Link to="/bulk-order" className="w-full sm:w-auto">
+                <Button variant="secondary" size="lg" className="w-full gap-2 text-sm md:text-base btn-lift h-11 md:h-12 rounded-xl border border-border/50 bg-secondary/80 hover:bg-secondary">
+                   <ShoppingBag className="h-4 w-4 md:h-5 md:w-5" />
+                   <span>Bulk Order</span>
+                </Button>
+             </Link>
           </div>
 
           {/* Scroll Indicator */}

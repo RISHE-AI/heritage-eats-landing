@@ -67,6 +67,7 @@ app.use('/api/site-settings', require('./routes/siteSettingsRoutes'));
 // New Routes
 app.use('/api/tracking', require('./routes/trackingRoutes'));
 app.use('/api/about', require('./routes/aboutRoutes'));
+app.use('/api/email', require('./routes/emailRoutes'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

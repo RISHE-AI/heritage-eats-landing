@@ -2,6 +2,7 @@ import React, { useState, useEffect, forwardRef } from "react";
 import { Product } from "@/types/product";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 import {
   Minus, Plus, ShoppingCart, Star,
@@ -211,16 +212,28 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
             </div>
 
 
-            {/* Add to Cart */}
-            <Button
-              size="lg"
-              className="w-full gap-2 h-12 text-sm font-semibold rounded-xl btn-lift ripple shadow-md"
-              onClick={handleAddToCart}
-              disabled={!selectedWeight}
-            >
-              <ShoppingCart className="h-4 w-4" />
-              Add to Cart — ₹{currentPrice * quantity}
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-3">
+              <Button
+                size="lg"
+                className="w-full gap-2 h-12 text-sm font-semibold rounded-xl btn-lift ripple shadow-md"
+                onClick={handleAddToCart}
+                disabled={!selectedWeight}
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Add to Cart — ₹{currentPrice * quantity}
+              </Button>
+              <Link to={`/bulk-order?preselect=${product.id || product._id}`} className="w-full">
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="w-full gap-2 h-12 text-sm font-semibold rounded-xl border-2 border-primary/20 text-primary hover:bg-primary/5 transition-colors"
+                >
+                  <Package className="h-4 w-4 md:h-5 md:w-5" />
+                  Order in Bulk Quantity
+                </Button>
+              </Link>
+            </div>
 
             {/* Info Strip */}
             <div className="flex items-center gap-4 text-[11px] text-muted-foreground pt-1 border-t border-border/40">

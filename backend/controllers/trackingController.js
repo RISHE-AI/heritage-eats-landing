@@ -1,5 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const Order = require('../models/Order');
 
 // Dummy data for testing with additional order details
 const DUMMY_DATA = {
@@ -42,7 +43,55 @@ const trackOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Please provide a tracking ID' });
         }
 
-        // 1. Check if it's a dummy ID
+        // 1. Check if it's a real order in the database first
+        try {
+             let dbOrder = await Order.findOne({ orderId: trackingId }).populate('customer', 'name phone address');
+             if (!dbOrder && trackingId.match(/^[0-9a-fA-F]{24}$/)) {
+                 dbOrder = await Order.findById(trackingId).populate('customer', 'name phone address');
+             }
+             
+             if (dbOrder) {
+                 const userAddress = dbOrder.customer && dbOrder.customer.address ? dbOrder.customer.address : 'Address not specified';
+                 const userPhone = dbOrder.customer && dbOrder.customer.phone ? dbOrder.customer.phone : '';
+                 
+                 let displayStatus = 'Processing';
+                 if (dbOrder.orderStatus === 'preparing') displayStatus = 'Preparing';
+                 if (dbOrder.orderStatus === 'out_for_delivery') displayStatus = 'Out for Delivery';
+                 if (dbOrder.orderStatus === 'delivered') displayStatus = 'Delivered';
+                 if (dbOrder.orderStatus === 'cancelled') displayStatus = 'Cancelled';
+
+                 const checkpoints = [];
+                 checkpoints.push({ location: 'Namakkal, TN', message: 'Order Confirmed', date: dbOrder.createdAt });
+                 
+                 if (['preparing', 'out_for_delivery', 'delivered'].includes(dbOrder.orderStatus)) {
+                     checkpoints.push({ location: 'Heritage Eats Cloud Kitchen', message: 'Preparing your delightful order', date: new Date(new Date(dbOrder.createdAt).getTime() + 2 * 60 * 60 * 1000).toISOString() });
+                 }
+                 if (['out_for_delivery', 'delivered'].includes(dbOrder.orderStatus)) {
+                     checkpoints.push({ location: 'Dispatch Center', message: 'Out for Delivery', date: new Date(new Date(dbOrder.createdAt).getTime() + 12 * 60 * 60 * 1000).toISOString() });
+                 }
+                 if (dbOrder.orderStatus === 'delivered') {
+                     checkpoints.push({ location: userAddress, message: 'Delivered Successfully', date: dbOrder.updatedAt });
+                 }
+                 
+                 checkpoints.reverse();
+
+                 return res.status(200).json({
+                     success: true,
+                     data: {
+                         orderId: dbOrder.orderId,
+                         fromAddress: '1/215, Ganapathy nagar, vaiyappamalai post, tiruchengode taluk, namakkal Dt - 637410',
+                         toAddress: userAddress,
+                         contactNumber: userPhone,
+                         status: displayStatus,
+                         checkpoints
+                     }
+                 });
+             }
+        } catch (dbError) {
+             console.error('Error fetching real order for tracking:', dbError);
+        }
+
+        // 2. Check if it's a dummy ID
         if (DUMMY_DATA[trackingId]) {
             return res.status(200).json({
                 success: true,

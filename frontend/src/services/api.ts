@@ -463,3 +463,13 @@ export const getAboutInfoAPI = async () => {
     const res = await fetch(`${API_BASE}/about/info`);
     return handleResponse(res);
 };
+
+// ========== EMAIL ==========
+export const sendBulkOrderEmailAPI = async (data: any) => {
+    const res = await fetch(`${API_BASE}/email/bulk-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+};

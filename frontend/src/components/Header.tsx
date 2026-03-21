@@ -160,13 +160,7 @@ const Header: React.FC = () => {
 
             {/* Desktop Actions */}
             <div className="flex items-center gap-1 md:gap-1.5">
-              {/* Extra Links */}
-              <Link to="/track" className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                <Package className="h-4 w-4 mb-0.5" /> Track Order
-              </Link>
-              <Link to="/about" className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors mr-1">
-                <Building2 className="h-4 w-4 mb-0.5" /> About
-              </Link>
+              {/* Removed Extra Links to prevent navbar shrinking */}
               {/* Search Toggle */}
               <Button
                 variant="ghost"

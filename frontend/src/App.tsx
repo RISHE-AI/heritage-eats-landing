@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import TrackOrder from "./pages/TrackOrder";
 import AboutUs from "./pages/AboutUs";
+import BulkOrder from "./pages/BulkOrder";
 
 import NotFound from "./pages/NotFound";
 
@@ -38,6 +39,7 @@ const App = () => (
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/track" element={<TrackOrder />} />
                   <Route path="/about" element={<AboutUs />} />
+                  <Route path="/bulk-order" element={<BulkOrder />} />
 
                   <Route path="*" element={<NotFound />} />
                 </Routes>

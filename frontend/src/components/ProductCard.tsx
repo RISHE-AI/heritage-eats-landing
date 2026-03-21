@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Product } from "@/types/product";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Eye, Heart } from "lucide-react";
+import { ShoppingCart, Eye, Heart, Package } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { cn } from "@/lib/utils";
@@ -170,6 +171,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
                   <span>Out of Stock</span>
                 )}
               </Button>
+              <Link to={`/bulk-order?preselect=${product.id || product._id}`}>
+                <Button size="sm" variant="outline" className="h-7 px-2 border-primary/20 text-primary hover:bg-primary/5 rounded-lg" title="Order Bulk Quantity">
+                  <Package className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -302,26 +308,37 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
           </span>
         </div>
 
-        {/* Add to Cart Button */}
-        <Button
-          className={cn(
-            "w-full gap-1.5 h-9 md:h-10 text-xs md:text-sm rounded-xl",
-            isAvailable ? "btn-lift ripple" : "bg-muted text-muted-foreground hover:bg-muted cursor-not-allowed",
-            isAdding && "cart-shake"
-          )}
-          onClick={handleQuickAdd}
-          disabled={!isAvailable}
-        >
-          {isAvailable ? (
-            <>
-              <ShoppingCart className="h-3.5 w-3.5 md:h-4 md:w-4" />
-              <span>Add to Cart</span>
-              <span className="text-[10px] tamil-text hidden sm:inline opacity-80">கார்ட்டில் சேர்</span>
-            </>
-          ) : (
-            <span className="font-semibold">Out of Stock — Will arrive soon</span>
-          )}
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            className={cn(
+              "flex-1 gap-1.5 h-9 md:h-10 text-xs md:text-sm rounded-xl",
+              isAvailable ? "btn-lift ripple" : "bg-muted text-muted-foreground hover:bg-muted cursor-not-allowed",
+              isAdding && "cart-shake"
+            )}
+            onClick={handleQuickAdd}
+            disabled={!isAvailable}
+          >
+            {isAvailable ? (
+              <>
+                <ShoppingCart className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                <span>Add to Cart</span>
+              </>
+            ) : (
+              <span className="font-semibold">Out of Stock</span>
+            )}
+          </Button>
+
+          <Link to={`/bulk-order?preselect=${product.id || product._id}`} onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="outline"
+              className="h-9 w-9 md:h-10 md:w-10 p-0 rounded-xl border-2 border-primary/20 text-primary hover:bg-primary/10 transition-colors"
+              title="Order in Bulk"
+            >
+              <Package className="h-4 w-4 md:h-5 md:w-5" />
+            </Button>
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );

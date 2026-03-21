@@ -25,7 +25,7 @@ const Hero: React.FC = () => {
     document.querySelector("#sweets")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const whatsappNumber = "919876543210";
+  const whatsappNumber = "916383240322";
   const whatsappMessage = encodeURIComponent("Hi! I'm interested in your homemade products.");
 
   return (

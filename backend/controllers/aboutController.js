@@ -11,7 +11,7 @@ const getAboutInfo = async (req, res) => {
             description: 'Bringing authentic Tamil traditional sweets, snacks, and pickles right to your doorstep. Prepared with love by experienced cooks using heritage recipes.',
             contact: {
                 email: 'contact.tdhms@gmail.com',
-                phone: 'Mythily - 9751188414, Kalarani - 82220557761',
+                phone: 'Mythily - 9751188414, Kalarani - 8220557761',
                 address: '1/215, Ganapathy nagar, vaiyappamalai post, tiruchengode taluk, namakkal Dt - 637410'
             },
             locations: [

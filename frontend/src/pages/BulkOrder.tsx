@@ -31,8 +31,8 @@ function resolveImage(img: string | undefined): string {
 }
 
 const BilingualLabel = ({ en, ta }: { en: React.ReactNode, ta: React.ReactNode }) => (
-  <span className="flex items-center gap-1.5 flex-wrap">
-    {en} <span className="text-[0.8em] font-normal opacity-75">/ {ta}</span>
+  <span className="inline">
+    {en} <span className="text-[0.8em] font-normal opacity-75 ml-1">/ {ta}</span>
   </span>
 );
 
@@ -268,7 +268,7 @@ ${formData.message || 'None'}`;
   const isValid = formData.name.trim() !== '' && formData.phone.trim() !== '' && cartItems.length > 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background w-full min-w-fit">
       <Header />
       
       {/* Hero Header */}

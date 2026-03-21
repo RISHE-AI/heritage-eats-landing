@@ -18,6 +18,7 @@ import AboutUs from "./pages/AboutUs";
 import BulkOrder from "./pages/BulkOrder";
 
 import NotFound from "./pages/NotFound";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
             <WishlistProvider>
               <Toaster position="top-center" richColors />
               <BrowserRouter>
+                <ScrollToTop />
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/checkout" element={<Checkout />} />

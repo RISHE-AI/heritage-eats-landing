@@ -473,3 +473,37 @@ export const sendBulkOrderEmailAPI = async (data: any) => {
     });
     return handleResponse(res);
 };
+
+// ========== NOTES (Admin Only) ==========
+export const fetchNotes = async () => {
+    const res = await fetch(`${API_BASE}/notes`, {
+        headers: getAdminHeaders()
+    });
+    return handleResponse(res);
+};
+
+export const createNote = async (data: { title: string, content: string, category?: string }) => {
+    const res = await fetch(`${API_BASE}/notes`, {
+        method: 'POST',
+        headers: getAdminHeaders(),
+        body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+};
+
+export const updateNote = async (id: string, data: { title?: string, content?: string, category?: string }) => {
+    const res = await fetch(`${API_BASE}/notes/${id}`, {
+        method: 'PUT',
+        headers: getAdminHeaders(),
+        body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+};
+
+export const deleteNote = async (id: string) => {
+    const res = await fetch(`${API_BASE}/notes/${id}`, {
+        method: 'DELETE',
+        headers: getAdminHeaders()
+    });
+    return handleResponse(res);
+};

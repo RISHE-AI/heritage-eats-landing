@@ -7,9 +7,10 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import CustomerDetailsForm from "@/components/CustomerDetailsForm";
 import OrderConfirmationDialog from "@/components/OrderConfirmationDialog";
 import RazorpayPayment from "@/components/RazorpayPayment";
+import { createOrder } from "@/services/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Trash2, ArrowLeft, CheckCircle, Clock, AlertTriangle, Sparkles, Shield, Truck, Package } from "lucide-react";
+import { Minus, Plus, Trash2, ArrowLeft, CheckCircle, Clock, AlertTriangle, Sparkles, Shield, Truck, Package, Banknote, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useConfetti } from "@/hooks/useConfetti";
 
@@ -34,6 +35,7 @@ const Checkout: React.FC = () => {
   const [cartExpiryTime] = useState(() => new Date(Date.now() + 30 * 60 * 1000));
   const [finalTotal, setFinalTotal] = useState(0);
   const [confirmedItems, setConfirmedItems] = useState<any[]>([]);
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
 
   const currentStep = paymentConfirmed ? 3 : showPayment ? 2 : 0;
 
@@ -45,7 +47,50 @@ const Checkout: React.FC = () => {
   const handleOrderConfirm = async () => {
     if (!customerDetails) return;
     setShowConfirmDialog(false);
-    setShowPayment(true);
+
+    if (paymentMethod === 'cod') {
+      // COD: create order directly without payment gateway
+      setIsProcessing(true);
+      try {
+        const orderData = {
+          customer: user?._id || user?.id,
+          items: items.map(item => ({
+            productId: item.product.id,
+            name: item.product.nameEn,
+            weight: item.selectedWeight,
+            quantity: item.quantity,
+            price: item.unitPrice * item.quantity,
+            customMessage: item.customMessage || ''
+          })),
+          deliveryCharge,
+          totalAmount: grandTotal,
+          paymentMethod: 'cod',
+          paymentStatus: 'pending'
+        };
+
+        const result = await createOrder(orderData);
+        if (result.success) {
+          setOrderId(result.data.orderId);
+          setPaymentConfirmed(true);
+          setFinalTotal(grandTotal);
+          setConfirmedItems(items);
+          clearCart();
+          fireConfetti();
+          setTimeout(() => fireStars(), 300);
+          toast.success("Order placed successfully! Pay on delivery.");
+        } else {
+          toast.error(result.message || "Failed to place order");
+        }
+      } catch (error: any) {
+        console.error('COD order error:', error);
+        toast.error(error.message || "Failed to place order. Please try again.");
+      } finally {
+        setIsProcessing(false);
+      }
+    } else {
+      // Online: go to Razorpay flow
+      setShowPayment(true);
+    }
   };
 
   const handleRazorpaySuccess = (data: { orderId: string; razorpayPaymentId: string }) => {
@@ -151,8 +196,14 @@ const Checkout: React.FC = () => {
                   <span className="font-mono font-semibold text-xs sm:text-sm truncate max-w-[55%] text-right">{orderId}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm text-muted-foreground">Total Paid</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">{paymentMethod === 'cod' ? 'Total (Pay on Delivery)' : 'Total Paid'}</span>
                   <span className="font-bold text-lg sm:text-xl text-primary">₹{finalTotal}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs sm:text-sm text-muted-foreground">Payment Method</span>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${paymentMethod === 'cod' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'}`}>
+                    {paymentMethod === 'cod' ? '💵 Cash on Delivery' : '💳 Online Payment'}
+                  </span>
                 </div>
                 {customerDetails && (
                   <div className="flex items-start justify-between gap-2">
@@ -194,7 +245,7 @@ const Checkout: React.FC = () => {
                   }`}>
                   {i < currentStep ? "✓" : i + 1}
                 </div>
-                <span className="text-[10px] font-medium mt-1 text-muted-foreground">{step.label}</span>
+                <span className="text-[9px] sm:text-[10px] font-medium mt-1 text-muted-foreground text-center leading-tight">{step.label}</span>
               </div>
             ))}
           </div>
@@ -325,8 +376,73 @@ const Checkout: React.FC = () => {
             </div>
           </div>
 
-          {/* Customer Details or Payment */}
-          <div className="lg:col-span-3 min-w-0">
+          {/* Payment Method Selection + Customer Details or Payment */}
+          <div className="lg:col-span-3 min-w-0 space-y-4">
+            {/* Payment Method Selection */}
+            {!showPayment && !paymentConfirmed && (
+              <Card className="rounded-2xl shadow-card overflow-hidden">
+                <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-secondary/30 border-b">
+                  <h2 className="font-serif text-sm font-bold">
+                    Payment Method
+                    <span className="text-xs font-normal text-muted-foreground tamil-text ml-2">பணம் செலுத்தும் முறை</span>
+                  </h2>
+                </div>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                    {/* COD Option */}
+                    <button
+                      onClick={() => setPaymentMethod('cod')}
+                      className={`relative flex flex-col items-center gap-1.5 sm:gap-2 p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 ${
+                        paymentMethod === 'cod'
+                          ? 'border-primary bg-primary/5 shadow-md scale-[1.02]'
+                          : 'border-border hover:border-primary/40 hover:bg-secondary/30'
+                      }`}
+                    >
+                      {paymentMethod === 'cod' && (
+                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                          <CheckCircle className="h-3.5 w-3.5 text-white" />
+                        </div>
+                      )}
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${
+                        paymentMethod === 'cod' ? 'bg-primary/10' : 'bg-secondary'
+                      }`}>
+                        <Banknote className={`h-5 w-5 sm:h-6 sm:w-6 ${paymentMethod === 'cod' ? 'text-primary' : 'text-muted-foreground'}`} />
+                      </div>
+                      <div className="text-center">
+                        <p className={`text-xs sm:text-sm font-semibold ${paymentMethod === 'cod' ? 'text-primary' : ''}`}>Cash on Delivery</p>
+                        <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Pay when you receive</p>
+                      </div>
+                    </button>
+
+                    {/* Online Payment Option */}
+                    <button
+                      onClick={() => setPaymentMethod('online')}
+                      className={`relative flex flex-col items-center gap-1.5 sm:gap-2 p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 ${
+                        paymentMethod === 'online'
+                          ? 'border-primary bg-primary/5 shadow-md scale-[1.02]'
+                          : 'border-border hover:border-primary/40 hover:bg-secondary/30'
+                      }`}
+                    >
+                      {paymentMethod === 'online' && (
+                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                          <CheckCircle className="h-3.5 w-3.5 text-white" />
+                        </div>
+                      )}
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${
+                        paymentMethod === 'online' ? 'bg-primary/10' : 'bg-secondary'
+                      }`}>
+                        <CreditCard className={`h-5 w-5 sm:h-6 sm:w-6 ${paymentMethod === 'online' ? 'text-primary' : 'text-muted-foreground'}`} />
+                      </div>
+                      <div className="text-center">
+                        <p className={`text-xs sm:text-sm font-semibold ${paymentMethod === 'online' ? 'text-primary' : ''}`}>Online Payment</p>
+                        <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">UPI, Cards, Net Banking</p>
+                      </div>
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {!showPayment ? (
               <CustomerDetailsForm onDetailsSubmit={handleDetailsSubmit} isSubmitting={isProcessing} />
             ) : (

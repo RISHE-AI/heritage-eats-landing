@@ -162,9 +162,12 @@ export const fetchMyOrders = async () => {
     return handleResponse(res);
 };
 
-export const fetchOrders = async (status?: string) => {
-    const params = status ? `?status=${status}` : '';
-    const res = await fetch(`${API_BASE}/orders${params}`, {
+export const fetchOrders = async (status?: string, paymentFilter?: string) => {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (paymentFilter) params.set('paymentFilter', paymentFilter);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_BASE}/orders${query}`, {
         headers: getAdminHeaders()
     });
     return handleResponse(res);
@@ -175,6 +178,21 @@ export const updateOrderStatus = async (id: string, status: any) => {
         method: 'PUT',
         headers: getAdminHeaders(),
         body: JSON.stringify(status)
+    });
+    return handleResponse(res);
+};
+
+export const markOrderAsPaid = async (orderId: string) => {
+    const res = await fetch(`${API_BASE}/orders/${orderId}/mark-paid`, {
+        method: 'PUT',
+        headers: getAdminHeaders()
+    });
+    return handleResponse(res);
+};
+
+export const fetchCodStats = async () => {
+    const res = await fetch(`${API_BASE}/orders/cod-stats`, {
+        headers: getAdminHeaders()
     });
     return handleResponse(res);
 };

@@ -123,9 +123,9 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
           <div className="space-y-2">
-            <Label htmlFor="name" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Full Name / முழு பெயர் *
+            <Label htmlFor="name" className="flex items-center gap-2 text-xs sm:text-sm">
+              <User className="h-4 w-4 shrink-0" />
+              <span>Full Name / <span className="tamil-text">முழு பெயர்</span> *</span>
             </Label>
             <Input
               id="name"
@@ -146,9 +146,9 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
           {/* Phone */}
           <div className="space-y-2">
-            <Label htmlFor="phone" className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Phone Number / தொலைபேசி எண் *
+            <Label htmlFor="phone" className="flex items-center gap-2 text-xs sm:text-sm">
+              <Phone className="h-4 w-4 shrink-0" />
+              <span>Phone Number / <span className="tamil-text">தொலைபேசி எண்</span> *</span>
             </Label>
             <Input
               id="phone"
@@ -169,9 +169,9 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
           {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              Email Address / மின்னஞ்சல் (Optional)
+            <Label htmlFor="email" className="flex items-center gap-2 text-xs sm:text-sm">
+              <Mail className="h-4 w-4 shrink-0" />
+              <span>Email / <span className="tamil-text">மின்னஞ்சல்</span> (Optional)</span>
             </Label>
             <Input
               id="email"
@@ -192,9 +192,9 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
 
           {/* Address */}
           <div className="space-y-2">
-            <Label htmlFor="address" className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Delivery Address / டெலிவரி முகவரி *
+            <Label htmlFor="address" className="flex items-center gap-2 text-xs sm:text-sm">
+              <MapPin className="h-4 w-4 shrink-0" />
+              <span>Delivery Address / <span className="tamil-text">டெலிவரி முகவரி</span> *</span>
             </Label>
             <div className="p-2 bg-secondary/50 rounded-md text-xs text-muted-foreground mb-2">
               <span className="font-medium">Delivery Info:</span> ₹60/kg delivery charge
@@ -241,7 +241,12 @@ const CustomerDetailsForm: React.FC<CustomerDetailsFormProps> = ({
             disabled={isSubmitting}
             aria-label="Proceed to payment"
           >
-            {isSubmitting ? "Processing..." : "Proceed to Payment / பணம் செலுத்த தொடரவும்"}
+            {isSubmitting ? "Processing..." : (
+              <span className="flex flex-col items-center leading-tight">
+                <span>Proceed to Payment</span>
+                <span className="text-[10px] sm:text-xs opacity-80 tamil-text">பணம் செலுத்த தொடரவும்</span>
+              </span>
+            )}
           </Button>
         </form>
       </CardContent>

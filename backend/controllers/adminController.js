@@ -59,10 +59,12 @@ const getStats = async (req, res, next) => {
         const totalProducts = await Product.countDocuments(); // products aren't time-filtered
         const totalReviews = await Review.countDocuments(isFiltered ? dateFilter : {});
 
-        // --- Revenue (filtered or all-time) ---
-        const revMatch = isFiltered ? { $match: dateFilter } : { $match: {} };
+        // --- Revenue (filtered or all-time) — only count paid orders ---
+        const revMatchFilter = isFiltered
+            ? { paymentStatus: 'paid', ...dateFilter }
+            : { paymentStatus: 'paid' };
         const revenueResult = await Order.aggregate([
-            revMatch,
+            { $match: revMatchFilter },
             { $group: { _id: null, total: { $sum: '$totalAmount' } } }
         ]);
         const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
@@ -76,14 +78,14 @@ const getStats = async (req, res, next) => {
         if (!isFiltered) {
             todayOrders = await Order.countDocuments({ createdAt: { $gte: todayStart } });
             const todayRevResult = await Order.aggregate([
-                { $match: { createdAt: { $gte: todayStart } } },
+                { $match: { createdAt: { $gte: todayStart }, paymentStatus: 'paid' } },
                 { $group: { _id: null, total: { $sum: '$totalAmount' } } }
             ]);
             todayRevenue = todayRevResult.length > 0 ? todayRevResult[0].total : 0;
 
             monthOrders = await Order.countDocuments({ createdAt: { $gte: monthStart } });
             const monthRevResult = await Order.aggregate([
-                { $match: { createdAt: { $gte: monthStart } } },
+                { $match: { createdAt: { $gte: monthStart }, paymentStatus: 'paid' } },
                 { $group: { _id: null, total: { $sum: '$totalAmount' } } }
             ]);
             monthRevenue = monthRevResult.length > 0 ? monthRevResult[0].total : 0;

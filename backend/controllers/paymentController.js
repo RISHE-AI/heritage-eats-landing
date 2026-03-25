@@ -92,7 +92,8 @@ const verifyPayment = async (req, res, next) => {
                 totalAmount: orderData.totalAmount || orderData.grandTotal,
                 paymentMethod: 'razorpay',
                 paymentStatus: 'paid',
-                orderStatus: 'confirmed'
+                orderStatus: 'confirmed',
+                paidAt: new Date()
             });
 
             // Update product totalSold

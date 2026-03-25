@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { adminGetStats } from '@/services/api';
+import { adminGetStats, fetchCodStats } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -70,6 +70,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ password, onLogout }) =
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [isCustom, setIsCustom] = useState(false);
+  const [codStats, setCodStats] = useState<{ pending: { amount: number; count: number }; collected: { amount: number; count: number } } | null>(null);
 
   const fetchStats = useCallback(async (startDate?: string, endDate?: string) => {
     try {
@@ -90,7 +91,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ password, onLogout }) =
 
   useEffect(() => {
     fetchStats();
+    loadCodStats();
   }, []);
+
+  const loadCodStats = async () => {
+    try {
+      const result = await fetchCodStats();
+      if (result.success) setCodStats(result.data);
+    } catch (e) { /* ignore */ }
+  };
 
   const handlePreset = (key: PresetKey) => {
     setActivePreset(key);
@@ -381,6 +390,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ password, onLogout }) =
           </Card>
         ))}
       </div>
+
+      {/* ═════════════════════ COD STATS ═════════════════════ */}
+      {codStats && (
+        <div className="grid gap-4 grid-cols-2">
+          <Card className="border-l-4 border-l-amber-500">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">COD Pending</CardTitle>
+              <div className="p-2 rounded-lg bg-amber-100"><DollarSign className="h-4 w-4 text-amber-600" /></div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-600">₹{(codStats.pending.amount || 0).toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">{codStats.pending.count} order{codStats.pending.count !== 1 ? 's' : ''}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-l-4 border-l-green-500">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">COD Collected</CardTitle>
+              <div className="p-2 rounded-lg bg-green-100"><DollarSign className="h-4 w-4 text-green-600" /></div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">₹{(codStats.collected.amount || 0).toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">{codStats.collected.count} order{codStats.collected.count !== 1 ? 's' : ''}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* ═════════════════════ CHARTS — Revenue Area + Orders Bar ═════════════════════ */}
       <div className="grid gap-6 md:grid-cols-2">

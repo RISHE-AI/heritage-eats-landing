@@ -258,7 +258,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ password, onLogout }) =
                     mode="range"
                     selected={dateRange}
                     onSelect={handleCalendarSelect}
-                    numberOfMonths={2}
+                    numberOfMonths={typeof window !== 'undefined' && window.innerWidth >= 768 ? 2 : 1}
                     disabled={{ after: new Date() }}
                     className="rounded-b-md"
                   />
@@ -542,7 +542,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ password, onLogout }) =
           </CardHeader>
           <CardContent>
             {stats?.topProducts && stats.topProducts.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-3 h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {stats.topProducts.map((product, index) => {
                   const maxSold = stats.topProducts[0]?.totalSold || 1;
                   const pct = (product.totalSold / maxSold) * 100;
@@ -550,8 +550,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ password, onLogout }) =
                     <div key={product._id || index} className="relative">
                       <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 relative z-10">
                         <div className="flex items-center gap-3">
-                          <span
-                            className={`h-8 w-8 rounded-lg flex items-center justify-center text-sm font-bold ${index === 0 ? 'bg-amber-100 text-amber-700' :
+                           <span
+                            className={`h-8 w-8 min-w-8 rounded-lg flex items-center justify-center text-sm font-bold ${index === 0 ? 'bg-amber-100 text-amber-700' :
                                 index === 1 ? 'bg-slate-100 text-slate-600' :
                                   index === 2 ? 'bg-orange-100 text-orange-700' :
                                     'bg-muted text-muted-foreground'
@@ -559,12 +559,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ password, onLogout }) =
                           >
                             #{index + 1}
                           </span>
-                          <span className="font-medium text-sm">{product.name || product._id}</span>
+                          <span className="font-medium text-sm truncate mr-2">{product.name || product._id}</span>
                         </div>
-                        <span className="text-sm font-bold text-indigo-600">{product.totalSold} sold</span>
+                        <span className="text-sm font-bold text-indigo-600 shrink-0">{product.totalSold} sold</span>
                       </div>
                       {/* Progress bar */}
-                      <div className="absolute bottom-0 left-0 h-1 rounded-b-xl bg-indigo-500/20 w-full">
+                      <div className="absolute bottom-0 left-0 h-1 rounded-b-xl bg-indigo-500/20 w-full overflow-hidden">
                         <div
                           className="h-full rounded-b-xl bg-indigo-500 transition-all duration-500"
                           style={{ width: `${pct}%` }}
@@ -575,7 +575,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ password, onLogout }) =
                 })}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">No sales data yet.</p>
+              <div className="h-[300px] flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">No sales data yet.</p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -593,17 +595,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ password, onLogout }) =
           </CardHeader>
           <CardContent>
             {stats?.recentOrders && stats.recentOrders.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-3 h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {stats.recentOrders.map((order, index) => (
                   <div key={order._id || index} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
-                    <div>
-                      <p className="font-medium text-sm">{order.orderId || order._id}</p>
-                      <p className="text-xs text-muted-foreground">
+                    <div className="min-w-0 pr-2">
+                       <p className="font-medium text-sm truncate">{order.orderId || order._id}</p>
+                      <p className="text-xs text-muted-foreground truncate">
                         {order.customer?.name || 'Customer'} • {order.items?.length || 0} item(s)
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-primary">₹{order.totalAmount}</p>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-semibold text-primary">₹{(order.totalAmount || 0).toLocaleString()}</p>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
                           order.paymentStatus === 'failed' ? 'bg-red-100 text-red-700' :
                             'bg-yellow-100 text-yellow-700'
@@ -615,7 +617,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ password, onLogout }) =
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">No orders yet.</p>
+              <div className="h-[300px] flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">No orders yet.</p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -630,14 +634,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ password, onLogout }) =
           </CardHeader>
           <CardContent>
             {stats?.mostReviewed && stats.mostReviewed.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-3 h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {stats.mostReviewed.map((product, index) => (
                   <div key={product._id || index} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
-                    <div>
-                      <p className="font-medium text-sm">{product.name || product._id}</p>
+                    <div className="min-w-0 pr-2">
+                       <p className="font-medium text-sm truncate">{product.name || product._id}</p>
                       <p className="text-xs text-muted-foreground">{product.count} reviews</p>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-yellow-50 dark:bg-yellow-500/10 px-2.5 py-1 rounded-lg">
+                    <div className="flex items-center gap-1.5 bg-yellow-50 dark:bg-yellow-500/10 px-2.5 py-1 rounded-lg shrink-0">
                       <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                       <span className="text-sm font-bold text-yellow-700 dark:text-yellow-400">
                         {product.avgRating?.toFixed(1) || '0.0'}
@@ -647,7 +651,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ password, onLogout }) =
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">No reviews yet.</p>
+              <div className="h-[300px] flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">No reviews yet.</p>
+              </div>
             )}
           </CardContent>
         </Card>

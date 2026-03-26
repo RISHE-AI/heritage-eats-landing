@@ -37,7 +37,13 @@ const getProducts = async (req, res, next) => {
 // @route   GET /api/products/:id
 const getProductById = async (req, res, next) => {
     try {
-        const product = await Product.findOne({ id: req.params.id }) || await Product.findById(req.params.id);
+        let product = await Product.findOne({ id: req.params.id });
+        if (!product) {
+            const mongoose = require('mongoose');
+            if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+                product = await Product.findById(req.params.id);
+            }
+        }
 
         if (!product) {
             return res.status(404).json({ success: false, message: 'Product not found' });
@@ -129,7 +135,10 @@ const updateProduct = async (req, res, next) => {
     try {
         let product = await Product.findOne({ id: req.params.id });
         if (!product) {
-            product = await Product.findById(req.params.id);
+            const mongoose = require('mongoose');
+            if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+                product = await Product.findById(req.params.id);
+            }
         }
 
         if (!product) {
@@ -180,7 +189,10 @@ const deleteProduct = async (req, res, next) => {
     try {
         let product = await Product.findOne({ id: req.params.id });
         if (!product) {
-            product = await Product.findById(req.params.id);
+            const mongoose = require('mongoose');
+            if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+                product = await Product.findById(req.params.id);
+            }
         }
 
         if (!product) {
@@ -199,10 +211,46 @@ const deleteProduct = async (req, res, next) => {
     }
 };
 
+// @desc    Update product stock
+// @route   PATCH /api/products/:id/stock
+const updateStock = async (req, res, next) => {
+    try {
+        const { stock } = req.body;
+        if (stock === undefined || stock === null || isNaN(Number(stock))) {
+            return res.status(400).json({ success: false, message: 'Valid stock number is required' });
+        }
+
+        let product = await Product.findOne({ id: req.params.id });
+        if (!product) {
+            const mongoose = require('mongoose');
+            if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+                product = await Product.findById(req.params.id);
+            }
+        }
+
+        if (!product) {
+            return res.status(404).json({ success: false, message: 'Product not found' });
+        }
+
+        product.stock = Number(stock);
+        await product.save();
+
+        res.status(200).json({
+            success: true,
+            data: product
+        });
+    } catch (error) {
+        console.error('Error updating stock:', error);
+        next(error);
+    }
+};
+
 module.exports = {
     getProducts,
     getProductById,
     createProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    updateStock
 };
+

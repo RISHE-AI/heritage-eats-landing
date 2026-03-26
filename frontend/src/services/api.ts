@@ -525,3 +525,38 @@ export const deleteNote = async (id: string) => {
     });
     return handleResponse(res);
 };
+
+// ========== STOCK ==========
+export const updateProductStock = async (id: string, stock: number) => {
+    const res = await fetch(`${API_BASE}/products/${id}/stock`, {
+        method: 'PATCH',
+        headers: getAdminHeaders(),
+        body: JSON.stringify({ stock })
+    });
+    return handleResponse(res);
+};
+
+export const createStockRequest = async (data: {
+    productId: string;
+    productName: string;
+    userEmail?: string;
+    userName?: string;
+    userPhone?: string;
+    requestedQty: number;
+    availableQty: number;
+    selectedWeight?: string;
+    preference: 'buy_available' | 'buy_later' | 'bulk';
+}) => {
+    const res = await fetch(`${API_BASE}/stock/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+};
+
+export const checkProductStock = async (productId: string) => {
+    const res = await fetch(`${API_BASE}/stock/check/${productId}`);
+    return handleResponse(res);
+};
+

@@ -18,6 +18,7 @@ export interface Product {
   available?: boolean;
   temporarilyUnavailable?: boolean;
   totalSold?: number;
+  stock?: number;
   weightOptions?: WeightOption[];
   badge?: string | null;
 }
@@ -95,6 +96,7 @@ export const transformProduct = (p: any): Product => ({
   available: p.available !== false,
   temporarilyUnavailable: p.temporarilyUnavailable || false,
   totalSold: p.totalSold || 0,
+  stock: p.stock ?? 0,
   weightOptions: p.weightOptions || [],
   badge: p.badge || null
 });
@@ -117,5 +119,6 @@ export const transformProductToBackend = (p: Product): any => ({
   storage_ta: p.storageTa,
   shelfLife: p.shelfLife,
   available: p.available,
+  stock: p.stock ?? 0,
   weightOptions: p.weightOptions
 });

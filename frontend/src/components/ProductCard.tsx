@@ -8,6 +8,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { cn } from "@/lib/utils";
 import StarRating from "./StarRating";
+import OutOfStockModal from "./OutOfStockModal";
 import { fetchReviewStats, BACKEND_URL } from "@/services/api";
 
 interface ProductCardProps {
@@ -39,6 +40,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
   const [reviewStats, setReviewStats] = useState({ reviewCount: 0, averageRating: 0 });
   const [selectedWeightIdx, setSelectedWeightIdx] = useState(0);
   const [imageIndex, setImageIndex] = useState(0);
+  const [showStockModal, setShowStockModal] = useState(false);
   const inWishlist = isInWishlist(product.id);
 
   // Get the valid images list
@@ -69,6 +71,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const stock = product.stock ?? 0;
+    if (stock <= 0) {
+      setShowStockModal(true);
+      return;
+    }
+    // If adding 1 would exceed stock, show modal
+    // Count current cart quantity for this product+weight
+    const existingQty = 0; // simple case: just check stock
+    if (existingQty + 1 > stock) {
+      setShowStockModal(true);
+      return;
+    }
     setIsAdding(true);
     addToCart(product, 1, currentWeight.weight, currentPrice);
     setTimeout(() => setIsAdding(false), 400);
@@ -81,7 +95,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
     setTimeout(() => setHeartAnim(false), 500);
   };
 
-  const isAvailable = product.available !== false;
+  const isAvailable = product.available !== false && (product.stock ?? 0) > 0;
   const badge = product.badge && BADGE_STYLES[product.badge];
 
   // ===== LIST VARIANT (Amazon/Flipkart style) =====
@@ -185,6 +199,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
 
   // ===== CARD VARIANT (Default) =====
   return (
+    <>
     <Card
       className={cn(
         "overflow-hidden rounded-2xl shadow-card cursor-pointer transition-all duration-300 group",
@@ -341,6 +356,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onReadMore, variant 
         </div>
       </CardContent>
     </Card>
+
+    {/* Out of Stock Modal */}
+    <OutOfStockModal
+      open={showStockModal}
+      onClose={() => setShowStockModal(false)}
+      productId={product.id}
+      productName={product.nameEn}
+      productNameTa={product.nameTa}
+      availableQty={product.stock ?? 0}
+      requestedQty={1}
+      selectedWeight={currentWeight.weight}
+      unitPrice={currentPrice}
+      onBuyAvailable={(qty) => {
+        addToCart(product, qty, currentWeight.weight, currentPrice);
+      }}
+    />
+    </>
   );
 };
 

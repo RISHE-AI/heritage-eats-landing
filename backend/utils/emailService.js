@@ -365,4 +365,109 @@ const sendBulkOrderEmail = async (bulkData) => {
     }
 };
 
-module.exports = { sendOrderEmail, sendBulkOrderEmail };
+const sendStockRequestEmail = async (requestData) => {
+    try {
+        const adminEmail = process.env.ADMIN_EMAIL || 'contact.tdhms@gmail.com';
+        const apiUrl = process.env.EMAIL_API_URL;
+        const emailUser = process.env.EMAIL_USER;
+        const emailPass = process.env.EMAIL_PASS;
+
+        const preferenceLabels = {
+            buy_available: '🛒 Buy Available Quantity',
+            buy_later: '⏳ Buy Full Quantity Later',
+            bulk: '📦 Bulk Purchase'
+        };
+
+        const subject = `📋 Stock Request: ${requestData.productName} — ${preferenceLabels[requestData.preference] || requestData.preference}`;
+
+        const htmlBody = `
+        <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 600px; margin: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+            <div style="background: linear-gradient(135deg, #7B2D00, #C0392B, #E67E22); padding: 28px 24px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 6px;">📦</div>
+                <h1 style="color: #fff; margin: 0 0 4px; font-size: 20px;">Stock Request Received</h1>
+                <p style="color: #FFD9B3; margin: 0; font-size: 13px;">A customer needs more stock</p>
+            </div>
+
+            <div style="padding: 24px;">
+                <table style="width: 100%; border-collapse: collapse; background: #fafafa; border-radius: 8px; overflow: hidden;">
+                    <tr>
+                        <td style="padding: 10px 14px; font-size: 13px; color: #666; border-bottom: 1px solid #f0e6d3;">📦 Product</td>
+                        <td style="padding: 10px 14px; font-size: 13px; font-weight: 600; color: #333; border-bottom: 1px solid #f0e6d3;">${requestData.productName}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 14px; font-size: 13px; color: #666; border-bottom: 1px solid #f0e6d3;">⚖️ Weight</td>
+                        <td style="padding: 10px 14px; font-size: 13px; font-weight: 600; color: #333; border-bottom: 1px solid #f0e6d3;">${requestData.selectedWeight || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 14px; font-size: 13px; color: #666; border-bottom: 1px solid #f0e6d3;">📊 Available</td>
+                        <td style="padding: 10px 14px; font-size: 13px; font-weight: 600; color: #e74c3c; border-bottom: 1px solid #f0e6d3;">${requestData.availableQty}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 14px; font-size: 13px; color: #666; border-bottom: 1px solid #f0e6d3;">🛒 Requested</td>
+                        <td style="padding: 10px 14px; font-size: 13px; font-weight: 600; color: #333; border-bottom: 1px solid #f0e6d3;">${requestData.requestedQty}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 14px; font-size: 13px; color: #666; border-bottom: 1px solid #f0e6d3;">✅ Preference</td>
+                        <td style="padding: 10px 14px; font-size: 13px; font-weight: 700; color: #7B2D00; border-bottom: 1px solid #f0e6d3;">${preferenceLabels[requestData.preference] || requestData.preference}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 14px; font-size: 13px; color: #666; border-bottom: 1px solid #f0e6d3;">👤 Customer</td>
+                        <td style="padding: 10px 14px; font-size: 13px; font-weight: 600; color: #333; border-bottom: 1px solid #f0e6d3;">${requestData.userName || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 14px; font-size: 13px; color: #666; border-bottom: 1px solid #f0e6d3;">✉️ Email</td>
+                        <td style="padding: 10px 14px; font-size: 13px; font-weight: 600; color: #333; border-bottom: 1px solid #f0e6d3;">${requestData.userEmail || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 14px; font-size: 13px; color: #666;">📱 Phone</td>
+                        <td style="padding: 10px 14px; font-size: 13px; font-weight: 600; color: #333;">${requestData.userPhone || 'N/A'}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #7B2D00, #C0392B); padding: 16px 24px; text-align: center;">
+                <p style="color: #FFD9B3; margin: 0; font-size: 12px;">Maghizam Homemade Delights — Stock Alert</p>
+            </div>
+        </div>`;
+
+        const recipients = adminEmail.split(',').map(e => e.trim());
+
+        // Option 1: HTTP API Relay
+        if (apiUrl) {
+            const fetch = global.fetch || require('node-fetch');
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to: recipients.join(','), subject, htmlBody })
+            });
+            const result = await response.json();
+            if (result.status === 'success' || response.ok) {
+                console.log('✅ Stock request email sent via API Relay');
+            } else {
+                throw new Error('API Relay failed: ' + JSON.stringify(result));
+            }
+            return;
+        }
+
+        // Option 2: SMTP
+        if (!emailUser || !emailPass || emailUser === 'your_gmail@gmail.com') {
+            console.log('Email not configured — skipping stock request notification');
+            return;
+        }
+
+        const transporter = createTransporter();
+        await transporter.sendMail({
+            from: `"Maghizam Notifications" <${emailUser}>`,
+            to: recipients.join(', '),
+            subject,
+            html: htmlBody
+        });
+        console.log('✅ Stock request email sent via SMTP');
+    } catch (error) {
+        console.error('❌ Failed to send stock request email:', error.message);
+        // Non-blocking — do not re-throw
+    }
+};
+
+module.exports = { sendOrderEmail, sendBulkOrderEmail, sendStockRequestEmail };
+

@@ -96,6 +96,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
         storage_ta: editingProduct.storageTa,
         shelfLife: editingProduct.shelfLife,
         available: editingProduct.available,
+        stock: editingProduct.stock ?? 0,
         weightOptions: editingProduct.weightOptions,
         badge: editingProduct.badge || null
       };
@@ -272,6 +273,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
                   storageTa: '',
                   shelfLife: '',
                   available: true,
+                  stock: 0,
                   weightOptions: []
                 });
                 setShowEditDialog(true);
@@ -318,7 +320,16 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
                       )}
                     </div>
                   </div>
-                  <p className="text-base font-bold mt-1">₹{product.price}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-base font-bold">₹{product.price}</p>
+                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
+                      (product.stock ?? 0) <= 0 ? 'border-red-300 text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400' :
+                      (product.stock ?? 0) <= 5 ? 'border-amber-300 text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400' :
+                      'border-emerald-300 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400'
+                    }`}>
+                      Stock: {product.stock ?? 0}
+                    </Badge>
+                  </div>
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center gap-2">
                       <Switch
@@ -430,6 +441,19 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ password, onLogout }) => 
                           type="number"
                           value={editingProduct.price}
                           onChange={(e) => setEditingProduct({ ...editingProduct, price: Number(e.target.value) })}
+                          className="h-9"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Stock (kg available)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={editingProduct.stock ?? 0}
+                          onChange={(e) => setEditingProduct({ ...editingProduct, stock: Number(e.target.value) })}
                           className="h-9"
                         />
                       </div>

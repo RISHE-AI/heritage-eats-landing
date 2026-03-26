@@ -13,6 +13,7 @@ import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
 import ProductReviews from "./ProductReviews";
 import StarRating from "./StarRating";
+import OutOfStockModal from "./OutOfStockModal";
 import { fetchReviewStats } from "@/services/api";
 import ImageCarousel from "./ImageCarousel";
 
@@ -31,6 +32,7 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
   const [customMessage, setCustomMessage] = useState("");
   const [reviewStats, setReviewStats] = useState({ reviewCount: 0, averageRating: 0 });
   const [showKeyboard, setShowKeyboard] = useState(false);
+  const [showStockModal, setShowStockModal] = useState(false);
   const { addToCart } = useCart();
 
   // Reset state when product changes
@@ -70,6 +72,15 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
 
   const handleAddToCart = () => {
     if (!selectedWeight) return;
+    const stock = product.stock ?? 0;
+    if (stock > 0 && quantity > stock) {
+      setShowStockModal(true);
+      return;
+    }
+    if (stock <= 0) {
+      setShowStockModal(true);
+      return;
+    }
     addToCart(product, quantity, selectedWeight, currentPrice, customMessage.trim() || undefined);
     onClose();
   };
@@ -160,6 +171,13 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
                 ))}
               </div>
             </div>
+
+            {/* Stock Info */}
+            {(product.stock ?? 0) > 0 && (product.stock ?? 0) <= 10 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                ⚠️ Only {product.stock} kg left in stock / {product.stock} கிலோ மட்டுமே உள்ளது
+              </p>
+            )}
 
             {/* Price + Quantity */}
             <div className="flex items-center justify-between">
@@ -405,6 +423,23 @@ const ProductModal = forwardRef<HTMLDivElement, ProductModalProps>(({ product, o
           <ProductReviews productId={product.id} productName={product.nameEn} />
         </div>
       </DialogContent>
+
+      {/* Out of Stock Modal */}
+      <OutOfStockModal
+        open={showStockModal}
+        onClose={() => setShowStockModal(false)}
+        productId={product.id}
+        productName={product.nameEn}
+        productNameTa={product.nameTa}
+        availableQty={product.stock ?? 0}
+        requestedQty={quantity}
+        selectedWeight={selectedWeight || ''}
+        unitPrice={currentPrice}
+        onBuyAvailable={(qty) => {
+          addToCart(product, qty, selectedWeight!, currentPrice, customMessage.trim() || undefined);
+          onClose();
+        }}
+      />
     </Dialog>
   );
 });
